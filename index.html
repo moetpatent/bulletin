@@ -1,0 +1,2374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patent IT Issue Bulletin Board</title>
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f6f8;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1750px;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            color: #333;
+            flex: 1;
+            text-align: center;
+        }
+
+        .user-info {
+            font-size: 13px;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-logout {
+            padding: 5px 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-logout:hover {
+            background-color: #c0392b;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .form-group input, 
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus, 
+        .form-group select:focus {
+            border-color: #4a90e2;
+        }
+
+        .file-upload-section {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fafafa;
+            border: 1px dashed #ccc;
+            border-radius: 6px;
+        }
+
+        .file-list {
+            list-style: none;
+            margin-top: 8px;
+            font-size: 13px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fff;
+            padding: 5px 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        .file-item .remove-file {
+            color: #e74c3c;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .attached-files-display {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px dashed #ddd;
+        }
+
+        .attached-files-display h4 {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .attached-file-link {
+            display: inline-block;
+            margin-right: 12px;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #4a90e2;
+            text-decoration: none;
+            background: #eaf2fd;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .attached-file-link:hover {
+            text-decoration: underline;
+        }
+
+        .title-search-box {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 6px;
+            padding: 10px;
+            z-index: 100;
+            width: 240px;
+            text-align: left;
+        }
+
+        .title-search-box.show {
+            display: block;
+        }
+
+        .title-search-box input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-bottom: 8px;
+            outline: none;
+        }
+
+        .title-search-box button {
+            padding: 4px 10px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .title-search-box button.btn-reset {
+            background: #7f8c8d;
+            margin-left: 5px;
+        }
+
+        .editor-container {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            overflow: visible;
+            background: #fff;
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .editor-toolbar {
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+        }
+
+        .editor-toolbar button {
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .editor-toolbar button:hover {
+            background: #e9ecef;
+        }
+
+        .editor-toolbar select.custom-select {
+            border: 1px solid #ccc;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #444;
+            height: 28px;
+            background: #fff;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .editor-toolbar select.custom-select:hover {
+            background: #f1f3f5;
+        }
+
+        .color-picker-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .color-preview-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            background-color: #000000;
+            position: absolute;
+            right: 8px;
+            pointer-events: none;
+            border: 1px solid rgba(0,0,0,0.2);
+        }
+
+        .btn-toolbar-post {
+            margin-left: auto;
+            background-color: #4a90e2 !important;
+            color: white !important;
+            border: none !important;
+            padding: 0 16px !important;
+            font-weight: bold !important;
+            transition: background 0.2s;
+        }
+
+        .btn-toolbar-post:hover {
+            background-color: #357abd !important;
+        }
+
+        .editor-content {
+            min-height: 250px;
+            padding: 15px;
+            outline: none;
+            font-size: 14px;
+            line-height: 1.6;
+            overflow-y: visible;
+            position: relative;
+        }
+
+        .comment-editor-content {
+            min-height: 120px;
+            padding: 12px;
+            outline: none;
+            font-size: 13px;
+            line-height: 1.5;
+            background: #fff;
+            position: relative;
+        }
+
+        .editor-content[placeholder]:empty:before,
+        .comment-editor-content[placeholder]:empty:before {
+            content: attr(placeholder);
+            color: #aaa;
+        }
+
+        .editor-content img, .comment-editor-content img {
+            max-width: 100%;
+            height: auto;
+            margin: 5px 0;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .image-resizer-box {
+            position: absolute;
+            border: 2px solid #4a90e2;
+            box-sizing: border-box;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
+
+        .resizer-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #4a90e2;
+            border: 1px solid #ffffff;
+            pointer-events: auto;
+            border-radius: 2px;
+        }
+
+        .resizer-handle.tl { top: -5px; left: -5px; cursor: nwse-resize; }
+        .resizer-handle.tr { top: -5px; right: -5px; cursor: nesw-resize; }
+        .resizer-handle.bl { bottom: -5px; left: -5px; cursor: nesw-resize; }
+        .resizer-handle.br { bottom: -5px; right: -5px; cursor: nwse-resize; }
+
+        .editor-content table, .comment-editor-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .editor-content table, .editor-content th, .editor-content td,
+        .comment-editor-content table, .comment-editor-content th, .comment-editor-content td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+
+        .table-container {
+            height: 480px;
+            overflow-y: scroll;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            background-color: #fff;
+        }
+
+        .table-container::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: #aaa;
+            border-radius: 5px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+
+        .table-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 0 4px;
+        }
+
+        .mail-send-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mail-send-box select {
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
+            background: #fff;
+        }
+
+        .btn-send-mail {
+            padding: 6px 12px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn-send-mail:hover {
+            background-color: #219150;
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+        }
+
+        .page-label {
+            font-weight: bold;
+            color: #555;
+            margin-right: 8px;
+            font-size: 13px;
+        }
+
+        .pagination button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            padding: 0 6px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            color: #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .pagination button svg {
+            width: 12px;
+            height: 12px;
+            fill: #555;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background-color: #f0f4f9;
+            border-color: #4a90e2;
+            color: #4a90e2;
+        }
+
+        .pagination button:hover:not(:disabled) svg {
+            fill: #4a90e2;
+        }
+
+        .pagination button.active {
+            background-color: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+            font-weight: bold;
+        }
+
+        .pagination button:disabled {
+            cursor: not-allowed;
+            opacity: 0.4;
+            background-color: #fafafa;
+        }
+
+        .board-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .board-table th, 
+        .board-table td {
+            padding: 10px 6px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        .board-table th {
+            background-color: #fafafa;
+            color: #666;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .th-container {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .sort-click {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .sort-click:hover {
+            color: #333;
+        }
+
+        .filter-btn {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        .filter-btn svg {
+            width: 12px;
+            height: 12px;
+            fill: #888;
+        }
+
+        .filter-btn:hover svg, .filter-btn.active svg {
+            fill: #4a90e2;
+        }
+
+        .filter-btn.active {
+            background: #eaf2fd;
+        }
+
+        .filter-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 6px;
+            padding: 6px 0;
+            z-index: 100;
+            min-width: 160px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        .filter-dropdown.show {
+            display: block;
+        }
+
+        .filter-dropdown div {
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #333;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        .filter-dropdown div:hover {
+            background-color: #f0f4f9;
+            color: #4a90e2;
+        }
+
+        .filter-dropdown div.selected {
+            font-weight: bold;
+            color: #4a90e2;
+            background-color: #eaf2fd;
+        }
+
+        .sort-icon {
+            font-size: 10px;
+            color: #aaa;
+        }
+
+        .th-container.active .sort-icon {
+            color: #4a90e2;
+            font-weight: bold;
+        }
+
+        .board-table td.title-cell {
+            text-align: left;
+            white-space: normal;
+        }
+
+        .author-mail-link {
+            color: #2980b9;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .author-mail-link:hover {
+            text-decoration: underline;
+            color: #1a5276;
+        }
+
+        .urgency-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .urgency-very-urgent {
+            background-color: #c0392b;
+        }
+
+        .urgency-urgent {
+            background-color: #e67e22;
+        }
+
+        .urgency-normal {
+            background-color: #95a5a6;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+            user-select: none;
+        }
+
+        .status-badge.clickable {
+            cursor: pointer;
+        }
+
+        .status-badge.disabled {
+            cursor: default;
+        }
+
+        .status-pending {
+            background-color: #e74c3c;
+        }
+
+        .status-waiting {
+            background-color: #f39c12;
+        }
+
+        .status-done {
+            background-color: #2ecc71;
+        }
+
+        .approval-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+            user-select: none;
+        }
+
+        .approval-review {
+            background-color: #9b59b6;
+        }
+
+        .approval-good {
+            background-color: #3498db;
+        }
+
+        .approval-reask {
+            background-color: #e67e22;
+        }
+
+        .approval-badge.clickable {
+            cursor: pointer;
+        }
+
+        .approval-badge.disabled {
+            cursor: default;
+            opacity: 0.8;
+        }
+
+        .days-badge {
+            font-weight: 600;
+            color: #555;
+            font-size: 12px;
+        }
+
+        .empty-msg {
+            text-align: center;
+            color: #888;
+            padding: 20px 0;
+        }
+
+        .login-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .login-modal {
+            background: white;
+            width: 100%;
+            max-width: 400px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+        }
+
+        .login-modal h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 22px;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-login:hover {
+            background-color: #357abd;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            width: 90%;
+            max-width: 950px;
+            border-radius: 8px;
+            padding: 25px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #888;
+        }
+
+        .modal-meta {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .modal-body {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .modal-body img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .modal-body table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .modal-body table, .modal-body th, .modal-body td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+
+        .comment-section h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #444;
+        }
+
+        .comment-list {
+            list-style: none;
+            margin-bottom: 15px;
+        }
+
+        .comment-item {
+            background: #f1f3f5;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .comment-item .comment-author {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .comment-item .comment-date {
+            font-size: 11px;
+            color: #888;
+            font-weight: normal;
+        }
+
+        .comment-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #fafafa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #eee;
+        }
+
+        .comment-form button {
+            padding: 10px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .comment-form button:hover {
+            background: #357abd;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Login Modal Overlay -->
+<div id="loginOverlay" class="login-overlay">
+    <div class="login-modal">
+        <h2>Bulletin Board Login</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="loginUserId">User ID</label>
+                <input type="text" id="loginUserId" placeholder="Enter ID" required>
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter Password" required>
+            </div>
+            <button type="submit" class="btn-login">Login</button>
+        </form>
+    </div>
+</div>
+
+<!-- Resizer Box Elements -->
+<div id="imageResizerBox" class="image-resizer-box">
+    <div class="resizer-handle tl" data-handle="tl"></div>
+    <div class="resizer-handle tr" data-handle="tr"></div>
+    <div class="resizer-handle bl" data-handle="bl"></div>
+    <div class="resizer-handle br" data-handle="br"></div>
+</div>
+
+<div class="container">
+    <div class="header-top">
+        <div style="width: 100px;"></div>
+        <h1>Patent IT Issue Bulletin Board</h1>
+        <div class="user-info">
+            <span id="loggedInUserDisplay">Logged in as: Guest</span>
+            <button class="btn-logout" onclick="logout()" id="btnLogout">Logout</button>
+        </div>
+    </div>
+
+    <!-- Post Creation Form -->
+    <form id="postForm">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select id="category" required>
+                    <option value="" disabled selected>Select Category</option>
+                    <option value="Patent">Patent</option>
+                    <option value="Utility Model">Utility Model</option>
+                    <option value="Design">Design</option>
+                    <option value="Other Services">Other Services</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="appNumber">Related Application Number</label>
+                <input type="text" id="appNumber" placeholder="if any">
+            </div>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="issueType">Issue Type</label>
+                <select id="issueType" required>
+                    <option value="" disabled selected>Select Issue Type</option>
+                    <option value="Logic Error">Logic Error</option>
+                    <option value="Data Correction">Data Correction</option>
+                    <option value="Legal Status Correction">Legal Status Correction</option>
+                    <option value="Question">Question</option>
+                    <option value="Others">Others</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="urgency">Urgency</label>
+                <select id="urgency" required>
+                    <option value="" disabled selected>Select Urgency</option>
+                    <option value="Very Urgent">Very Urgent</option>
+                    <option value="Urgent">Urgent</option>
+                    <option value="Normal">Normal</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="title">Title <span style="color:#e74c3c;">*</span></label>
+            <input type="text" id="title" placeholder="Enter title" required>
+        </div>
+
+        <div class="form-group">
+            <label>Content <span style="color:#e74c3c;">*</span></label>
+            <div class="editor-container">
+                <div class="editor-toolbar">
+                    <select class="custom-select" style="width: 65px;" onchange="applyStyle('editor', 'fontSize', this.value); this.selectedIndex=0;">
+                        <option value="" disabled selected>Size</option>
+                        <option value="1">S</option>
+                        <option value="3">M</option>
+                        <option value="5">L</option>
+                        <option value="7">XL</option>
+                    </select>
+
+                    <div class="color-picker-wrapper">
+                        <select class="custom-select" style="width: 90px; padding-right: 22px;" onchange="applyColorStyle('editor', this, 'editorColorIndicator')">
+                            <option value="" disabled selected>Color</option>
+                            <option value="#000000" style="color: black;">Black</option>
+                            <option value="#e74c3c" style="color: red;">Red</option>
+                            <option value="#3498db" style="color: blue;">Blue</option>
+                            <option value="#2ecc71" style="color: green;">Green</option>
+                            <option value="#795548" style="color: brown;">Brown</option>
+                            <option value="#8e5ea2" style="color: purple;">Purple</option>
+                        </select>
+                        <span id="editorColorIndicator" class="color-preview-indicator"></span>
+                    </div>
+
+                    <button type="button" onclick="execCmd('bold')"><b>B</b></button>
+                    <button type="button" onclick="execCmd('italic')"><i>I</i></button>
+                    <button type="button" onclick="execCmd('underline')"><u>U</u></button>
+                    <button type="button" onclick="execCmd('insertUnorderedList')">• List</button>
+                    <button type="button" onclick="insertTable('editor')">+ Table</button>
+                    <button type="button" onclick="triggerImageUpload('imageInput')">+ Image</button>
+                    <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="insertImage(event, 'editor')">
+                    
+                    <button type="button" onclick="triggerFileUpload('fileInput')">📎 File (Max 3, 5MB)</button>
+                    <input type="file" id="fileInput" multiple style="display:none;" onchange="handleFileSelect(event)">
+
+                    <button type="submit" class="btn-toolbar-post">POST</button>
+                </div>
+                <div id="editor" class="editor-content" contenteditable="true" placeholder="Enter content, paste images or tables here..."></div>
+            </div>
+            <div id="fileUploadDisplay" class="file-upload-section" style="display:none;">
+                <div style="font-size:12px; font-weight:600; color:#555;">Attached Files (Max 3, up to 5MB each):</div>
+                <ul id="fileList" class="file-list"></ul>
+            </div>
+        </div>
+    </form>
+
+    <!-- Table Top Bar -->
+    <div class="table-top-bar">
+        <div class="mail-send-box">
+            <select id="userMailSelect">
+                <option value="" disabled selected>Select User</option>
+            </select>
+            <button class="btn-send-mail" onclick="sendMailToUser()">Send Mail to</button>
+        </div>
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <!-- Post List Table Area -->
+    <div class="table-container">
+        <table class="board-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">
+                        <div class="th-container" id="th-container-post_no">
+                            <span class="sort-click" onclick="setSort('id')">
+                                Post No. <span id="sort-id" class="sort-icon">▼</span>
+                            </span>
+                        </div>
+                    </th>
+                    <th style="width: 7%;">
+                        <div class="th-container" id="th-container-category">
+                            <span>Category</span>
+                            <span class="filter-btn" id="filter-btn-category" onclick="toggleFilterMenu(event, 'category')" title="Filter">
+                                <svg viewBox="0 0 512 512"><path d="M487.976 0H24.028C2.71 0-8.047 25.866 7.058 40.971L192 225.941V432c0 7.831 3.821 15.17 10.237 19.662l80 56c12.08 8.458 28.763-.122 28.763-14.662V225.941L496.947 40.971C512.052 25.866 501.295 0 487.976 0z"/></svg>
+                            </span>
+                        </div>
+                        <div class="filter-dropdown" id="dropdown-category"></div>
+                    </th>
+
+                    <!-- App No. 키워드 검색(Search) 방식으로 변경 -->
+                    <th style="width: 8%;">
+                        <div class="th-container" id="th-container-appNumber">
+                            <span>App No.</span>
+                            <span class="filter-btn" id="filter-btn-appNumber" onclick="toggleAppNumberSearch(event)" title="Search App No.">
+                                <svg viewBox="0 0 512 512"><path d="M505 442.7L405.3 343c-4.5-4.5-10.6-7-17-7H372c27.6-35.3 44-79.7 44-128C416 93.1 322.9 0 208 0S0 93.1 0 208s93.1 208 208 208c48.3 0 92.7-16.4 128-44v16.3c0 6.4 2.5 12.5 7 17l99.7 99.7c9.4 9.4 24.6 9.4 33.9 0l28.3-28.3c9.4-9.4 9.4-24.6.1-34zM208 336c-70.7 0-128-57.2-128-128 0-70.7 57.2-128 128-128 70.7 0 128 57.2 128 128 0 70.7-57.2 128-128 128z"/></svg>
+                            </span>
+                        </div>
+                        <div class="title-search-box" id="appNumberSearchBox">
+                            <input type="text" id="appNumberSearchInput" placeholder="Enter App No..." onkeydown="if(event.key==='Enter') applyAppNumberSearch()">
+                            <div>
+                                <button type="button" onclick="applyAppNumberSearch()">Search</button>
+                                <button type="button" class="btn-reset" onclick="resetAppNumberSearch()">Reset</button>
+                            </div>
+                        </div>
+                    </th>
+
+                    <th style="width: 8%;">
+                        <div class="th-container" id="th-container-issueType">
+                            <span>Issue Type</span>
+                            <span class="filter-btn" id="filter-btn-issueType" onclick="toggleFilterMenu(event, 'issueType')" title="Filter">
+                                <svg viewBox="0 0 512 512"><path d="M487.976 0H24.028C2.71 0-8.047 25.866 7.058 40.971L192 225.941V432c0 7.831 3.821 15.17 10.237 19.662l80 56c12.08 8.458 28.763-.122 28.763-14.662V225.941L496.947 40.971C512.052 25.866 501.295 0 487.976 0z"/></svg>
+                            </span>
+                        </div>
+                        <div class="filter-dropdown" id="dropdown-issueType"></div>
+                    </th>
+                    <th style="width: 6%;">
+                        <div class="th-container" id="th-container-urgency">
+                            <span>Urgency</span>
+                            <span class="filter-btn" id="filter-btn-urgency" onclick="toggleFilterMenu(event, 'urgency')" title="Filter">
+                                <svg viewBox="0 0 512 512"><path d="M487.976 0H24.028C2.71 0-8.047 25.866 7.058 40.971L192 225.941V432c0 7.831 3.821 15.17 10.237 19.662l80 56c12.08 8.458 28.763-.122 28.763-14.662V225.941L496.947 40.971C512.052 25.866 501.295 0 487.976 0z"/></svg>
+                            </span>
+                        </div>
+                        <div class="filter-dropdown" id="dropdown-urgency"></div>
+                    </th>
+                    <th style="width: 25%;">
+                        <div class="th-container" id="th-container-title">
+                            <span>Title</span>
+                            <span class="filter-btn" id="filter-btn-title" onclick="toggleTitleSearch(event)" title="Search Title">
+                                <svg viewBox="0 0 512 512"><path d="M505 442.7L405.3 343c-4.5-4.5-10.6-7-17-7H372c27.6-35.3 44-79.7 44-128C416 93.1 322.9 0 208 0S0 93.1 0 208s93.1 208 208 208c48.3 0 92.7-16.4 128-44v16.3c0 6.4 2.5 12.5 7 17l99.7 99.7c9.4 9.4 24.6 9.4 33.9 0l28.3-28.3c9.4-9.4 9.4-24.6.1-34zM208 336c-70.7 0-128-57.2-128-128 0-70.7 57.2-128 128-128 70.7 0 128 57.2 128 128 0 70.7-57.2 128-128 128z"/></svg>
+                            </span>
+                        </div>
+                        <div class="title-search-box" id="titleSearchBox">
+                            <input type="text" id="titleSearchInput" placeholder="Enter keyword..." onkeydown="if(event.key==='Enter') applyTitleSearch()">
+                            <div>
+                                <button type="button" onclick="applyTitleSearch()">Search</button>
+                                <button type="button" class="btn-reset" onclick="resetTitleSearch()">Reset</button>
+                            </div>
+                        </div>
+                    </th>
+                    <th style="width: 7%;">
+                        <div class="th-container" id="th-container-author">
+                            <span class="sort-click" onclick="setSort('author')">
+                                Author <span id="sort-author" class="sort-icon">▲▼</span>
+                            </span>
+                            <span class="filter-btn" id="filter-btn-author" onclick="toggleFilterMenu(event, 'author')" title="Filter Author">
+                                <svg viewBox="0 0 512 512"><path d="M487.976 0H24.028C2.71 0-8.047 25.866 7.058 40.971L192 225.941V432c0 7.831 3.821 15.17 10.237 19.662l80 56c12.08 8.458 28.763-.122 28.763-14.662V225.941L496.947 40.971C512.052 25.866 501.295 0 487.976 0z"/></svg>
+                            </span>
+                        </div>
+                        <div class="filter-dropdown" id="dropdown-author"></div>
+                    </th>
+                    <th style="width: 8%;">
+                        <div class="th-container" id="th-container-status">
+                            <span class="sort-click" onclick="setSort('status')">
+                                Status <span id="sort-status" class="sort-icon">▲▼</span>
+                            </span>
+                            <span class="filter-btn" id="filter-btn-status" onclick="toggleFilterMenu(event, 'status')" title="Filter">
+                                <svg viewBox="0 0 512 512"><path d="M487.976 0H24.028C2.71 0-8.047 25.866 7.058 40.971L192 225.941V432c0 7.831 3.821 15.17 10.237 19.662l80 56c12.08 8.458 28.763-.122 28.763-14.662V225.941L496.947 40.971C512.052 25.866 501.295 0 487.976 0z"/></svg>
+                            </span>
+                        </div>
+                        <div class="filter-dropdown" id="dropdown-status"></div>
+                    </th>
+                    <th style="width: 7%;">
+                        <div class="th-container active" id="th-container-id">
+                            <span class="sort-click" onclick="setSort('created_at')">
+                                Post Date <span id="sort-created_at" class="sort-icon">▲▼</span>
+                            </span>
+                        </div>
+                    </th>
+                    <th style="width: 7%;">
+                        <div class="th-container" id="th-container-completed_at">
+                            <span class="sort-click" onclick="setSort('completed_at')">
+                                First Action <span id="sort-completed_at" class="sort-icon">▲▼</span>
+                            </span>
+                        </div>
+                    </th>
+                    <th style="width: 6%;">
+                        <div class="th-container" id="th-container-day_action">
+                            <span class="sort-click" onclick="setSort('day_action')">
+                                Day (Action) <span id="sort-day_action" class="sort-icon">▲▼</span>
+                            </span>
+                        </div>
+                    </th>
+                    <th style="width: 6%;">
+                        <div class="th-container" id="th-container-day_approval">
+                            <span class="sort-click" onclick="setSort('day_approval')">
+                                Day (Approval) <span id="sort-day_approval" class="sort-icon">▲▼</span>
+                            </span>
+                        </div>
+                    </th>
+                    <th style="width: 7%;">
+                        <div class="th-container" id="th-container-reask">
+                            <span>Approval</span>
+                            <span class="filter-btn" id="filter-btn-reask" onclick="toggleFilterMenu(event, 'reask')" title="Filter">
+                                <svg viewBox="0 0 512 512"><path d="M487.976 0H24.028C2.71 0-8.047 25.866 7.058 40.971L192 225.941V432c0 7.831 3.821 15.17 10.237 19.662l80 56c12.08 8.458 28.763-.122 28.763-14.662V225.941L496.947 40.971C512.052 25.866 501.295 0 487.976 0z"/></svg>
+                            </span>
+                        </div>
+                        <div class="filter-dropdown" id="dropdown-reask"></div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="postList">
+                <!-- Dynamically generated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal for Post Details & Comments -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modalTitle">Post Title</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-meta">
+            <span><strong>Category:</strong> <span id="modalCategory">-</span></span>
+            <span><strong>App No:</strong> <span id="modalAppNumber">-</span></span>
+            <span><strong>Type:</strong> <span id="modalType"></span></span>
+            <span><strong>Urgency:</strong> <span id="modalUrgency">-</span></span>
+            <span><strong>Author:</strong> <span id="modalAuthor"></span></span>
+            <span><strong>Post Date:</strong> <span id="modalDate"></span></span>
+            <span><strong>First Action:</strong> <span id="modalCompleteDate">-</span></span>
+        </div>
+        <div class="modal-body" id="modalContent"></div>
+
+        <div id="modalAttachedFiles" class="attached-files-display" style="display:none;">
+            <h4>Attached Files:</h4>
+            <div id="modalFileList"></div>
+        </div>
+
+        <div class="comment-section" style="margin-top:20px;">
+            <h3>Comments</h3>
+            <ul class="comment-list" id="commentList"></ul>
+
+            <form class="comment-form" id="commentForm">
+                <div class="editor-container" style="margin-bottom: 0;">
+                    <div class="editor-toolbar">
+                        <select class="custom-select" style="width: 65px;" onchange="applyStyle('commentEditor', 'fontSize', this.value); this.selectedIndex=0;">
+                            <option value="" disabled selected>Size</option>
+                            <option value="1">S</option>
+                            <option value="3">M</option>
+                            <option value="5">L</option>
+                            <option value="7">XL</option>
+                        </select>
+                        <div class="color-picker-wrapper">
+                            <select class="custom-select" style="width: 90px; padding-right: 22px;" onchange="applyColorStyle('commentEditor', this, 'commentColorIndicator')">
+                                <option value="" disabled selected>Color</option>
+                                <option value="#000000" style="color: black;">Black</option>
+                                <option value="#e74c3c" style="color: red;">Red</option>
+                                <option value="#3498db" style="color: blue;">Blue</option>
+                                <option value="#2ecc71" style="color: green;">Green</option>
+                                <option value="#795548" style="color: brown;">Brown</option>
+                                <option value="#8e5ea2" style="color: purple;">Purple</option>
+                            </select>
+                            <span id="commentColorIndicator" class="color-preview-indicator"></span>
+                        </div>
+                        <button type="button" onclick="execCmd('bold')"><b>B</b></button>
+                        <button type="button" onclick="execCmd('italic')"><i>I</i></button>
+                        <button type="button" onclick="execCmd('underline')"><u>U</u></button>
+                        <button type="button" onclick="execCmd('insertUnorderedList')">• List</button>
+                        <button type="button" onclick="insertTable('commentEditor')">+ Table</button>
+                        <button type="button" onclick="triggerImageUpload('commentImageInput')">+ Image</button>
+                        <input type="file" id="commentImageInput" accept="image/*" style="display:none;" onchange="insertImage(event, 'commentEditor')">
+                    </div>
+                    <div id="commentEditor" class="comment-editor-content" contenteditable="true" placeholder="Write a comment, paste images or tables here..."></div>
+                </div>
+
+                <button type="submit" style="margin-top: 10px;">Add Comment</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://wazcbmssqrvuawhzpgxm.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_kkP1YCDgcqwSZaMNpIfYdQ_mjwhYc3O';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentPostId = null;
+    let activeEditorId = 'editor';
+
+    let currentSortField = 'id'; 
+    let currentSortOrder = 'desc'; 
+
+    let currentPage = 1;
+    const postsPerPage = 100;
+
+    let selectedFilters = {
+        category: 'ALL',
+        appNumberSearch: '', // App No 키워드 검색
+        issueType: 'ALL',
+        urgency: 'ALL',
+        author: 'ALL',
+        status: 'ALL',
+        reask: 'ALL',
+        titleSearch: ''
+    };
+
+    let filterOptions = {
+        category: ['ALL', 'Patent', 'Utility Model', 'Design', 'Other Services'],
+        issueType: ['ALL', 'Logic Error', 'Data Correction', 'Legal Status Correction', 'Question', 'Others'],
+        urgency: ['ALL', 'Very Urgent', 'Urgent', 'Normal'],
+        author: ['ALL'],
+        status: ['ALL', 'PENDING', 'Waiting Approval', 'DONE'],
+        reask: ['ALL', 'Plz Review', 'Good', 'Re-ask']
+    };
+
+    let selectedFiles = [];
+
+    let activeResizedImg = null;
+    let currentHandle = null;
+    let startX = 0, startY = 0, startWidth = 0, startHeight = 0;
+
+    const resizerBox = document.getElementById("imageResizerBox");
+
+    document.addEventListener("DOMContentLoaded", function() {
+        checkLoginStatus();
+        initFilterMenus();
+        loadPosts();
+        
+        document.getElementById('editor').addEventListener('focus', () => activeEditorId = 'editor');
+        document.getElementById('commentEditor').addEventListener('focus', () => activeEditorId = 'commentEditor');
+
+        setupPasteHandler('editor');
+        setupPasteHandler('commentEditor');
+
+        setupImageResizer('editor');
+        setupImageResizer('commentEditor');
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.filter-btn') && !e.target.closest('.filter-dropdown') && !e.target.closest('.title-search-box')) {
+                closeAllFilterMenus();
+                closeTitleSearch();
+                closeAppNumberSearch();
+            }
+            if (e.target.tagName !== 'IMG' && !e.target.classList.contains('resizer-handle')) {
+                hideResizer();
+            }
+        });
+
+        window.addEventListener('resize', updateResizerPosition);
+        window.addEventListener('scroll', updateResizerPosition, true);
+    });
+
+    function checkLoginStatus() {
+        const currentUser = sessionStorage.getItem("currentUser");
+        const loginOverlay = document.getElementById("loginOverlay");
+        const userDisplay = document.getElementById("loggedInUserDisplay");
+        const btnLogout = document.getElementById("btnLogout");
+
+        if (!currentUser) {
+            loginOverlay.style.display = "flex";
+            userDisplay.innerText = "Logged in as: Guest";
+            btnLogout.innerText = "Login";
+        } else {
+            loginOverlay.style.display = "none";
+            userDisplay.innerText = `Logged in as: ${currentUser}`;
+            btnLogout.innerText = "Logout";
+        }
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const username = document.getElementById("loginUserId").value.trim();
+        const password = document.getElementById("loginPassword").value.trim();
+
+        const { data, error } = await supabaseClient
+            .from('app_users')
+            .select('*')
+            .eq('username', username)
+            .eq('password', password)
+            .single();
+
+        if (error || !data) {
+            alert("Invalid User ID or Password.");
+            return;
+        }
+
+        sessionStorage.setItem("currentUser", username);
+        document.getElementById("loginUserId").value = "";
+        document.getElementById("loginPassword").value = "";
+        checkLoginStatus();
+        loadPosts();
+    });
+
+    function logout() {
+        const currentUser = sessionStorage.getItem("currentUser");
+        if (currentUser) {
+            sessionStorage.removeItem("currentUser");
+        }
+        checkLoginStatus();
+    }
+
+    function applyStyle(editorId, command, value) {
+        const target = document.getElementById(editorId);
+        target.focus();
+        execCmd(command, value);
+    }
+
+    function applyColorStyle(editorId, selectEl, indicatorId) {
+        const selectedColor = selectEl.value;
+        if (selectedColor) {
+            applyStyle(editorId, 'foreColor', selectedColor);
+            document.getElementById(indicatorId).style.backgroundColor = selectedColor;
+        }
+    }
+
+    function setupImageResizer(editorId) {
+        const ed = document.getElementById(editorId);
+        ed.addEventListener('click', function(e) {
+            if (e.target.tagName === 'IMG') {
+                e.stopPropagation();
+                attachResizer(e.target);
+            }
+        });
+    }
+
+    function attachResizer(img) {
+        activeResizedImg = img;
+        updateResizerPosition();
+        resizerBox.style.display = 'block';
+    }
+
+    function updateResizerPosition() {
+        if (!activeResizedImg || resizerBox.style.display === 'none') return;
+        const rect = activeResizedImg.getBoundingClientRect();
+        resizerBox.style.top = (rect.top + window.scrollY) + 'px';
+        resizerBox.style.left = (rect.left + window.scrollX) + 'px';
+        resizerBox.style.width = rect.width + 'px';
+        resizerBox.style.height = rect.height + 'px';
+    }
+
+    function hideResizer() {
+        activeResizedImg = null;
+        resizerBox.style.display = 'none';
+    }
+
+    resizerBox.addEventListener('mousedown', function(e) {
+        if (e.target.classList.contains('resizer-handle')) {
+            e.preventDefault();
+            e.stopPropagation();
+            currentHandle = e.target.getAttribute('data-handle');
+            startX = e.clientX;
+            startY = e.clientY;
+            startWidth = activeResizedImg.clientWidth;
+            startHeight = activeResizedImg.clientHeight;
+
+            document.addEventListener('mousemove', handleDrag);
+            document.addEventListener('mouseup', stopDrag);
+        }
+    });
+
+    function handleDrag(e) {
+        if (!activeResizedImg) return;
+
+        const dx = e.clientX - startX;
+        let newWidth = startWidth;
+
+        if (currentHandle === 'br' || currentHandle === 'tr') {
+            newWidth = startWidth + dx;
+        } else if (currentHandle === 'bl' || currentHandle === 'tl') {
+            newWidth = startWidth - dx;
+        }
+
+        if (newWidth > 30) {
+            activeResizedImg.style.width = newWidth + 'px';
+            activeResizedImg.style.height = 'auto';
+            updateResizerPosition();
+        }
+    }
+
+    function stopDrag() {
+        document.removeEventListener('mousemove', handleDrag);
+        document.removeEventListener('mouseup', stopDrag);
+    }
+
+    const postForm = document.getElementById("postForm");
+    const postList = document.getElementById("postList");
+    const commentForm = document.getElementById("commentForm");
+    const editor = document.getElementById("editor");
+    const commentEditor = document.getElementById("commentEditor");
+
+    function initFilterMenus() {
+        ['category', 'issueType', 'urgency', 'author', 'status', 'reask'].forEach(type => {
+            const dropdown = document.getElementById(`dropdown-${type}`);
+            if (!dropdown) return;
+            dropdown.innerHTML = "";
+            filterOptions[type].forEach(option => {
+                const item = document.createElement("div");
+                item.innerText = option === 'ALL' ? 'All' : option;
+                if (selectedFilters[type] === option) item.classList.add('selected');
+                
+                item.onclick = (e) => {
+                    e.stopPropagation();
+                    selectedFilters[type] = option;
+                    updateFilterButtonUI(type);
+                    closeAllFilterMenus();
+                    currentPage = 1;
+                    loadPosts();
+                };
+                dropdown.appendChild(item);
+            });
+        });
+    }
+
+    function toggleFilterMenu(e, type) {
+        e.stopPropagation();
+        const dropdown = document.getElementById(`dropdown-${type}`);
+        const isOpen = dropdown.classList.contains('show');
+        closeAllFilterMenus();
+        closeTitleSearch();
+        closeAppNumberSearch();
+        if (!isOpen) dropdown.classList.add('show');
+    }
+
+    function closeAllFilterMenus() {
+        document.querySelectorAll('.filter-dropdown').forEach(el => el.classList.remove('show'));
+    }
+
+    function toggleTitleSearch(e) {
+        e.stopPropagation();
+        const box = document.getElementById('titleSearchBox');
+        const isOpen = box.classList.contains('show');
+        closeAllFilterMenus();
+        closeAppNumberSearch();
+        if (!isOpen) {
+            box.classList.add('show');
+            document.getElementById('titleSearchInput').focus();
+        } else {
+            box.classList.remove('show');
+        }
+    }
+
+    function closeTitleSearch() {
+        document.getElementById('titleSearchBox').classList.remove('show');
+    }
+
+    function applyTitleSearch() {
+        const val = document.getElementById('titleSearchInput').value.trim();
+        selectedFilters.titleSearch = val;
+        const btn = document.getElementById('filter-btn-title');
+        if (val) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+        closeTitleSearch();
+        currentPage = 1;
+        loadPosts();
+    }
+
+    function resetTitleSearch() {
+        document.getElementById('titleSearchInput').value = '';
+        selectedFilters.titleSearch = '';
+        document.getElementById('filter-btn-title').classList.remove('active');
+        closeTitleSearch();
+        currentPage = 1;
+        loadPosts();
+    }
+
+    // App No 검색 팝업 토글 및 필터링 제어
+    function toggleAppNumberSearch(e) {
+        e.stopPropagation();
+        const box = document.getElementById('appNumberSearchBox');
+        const isOpen = box.classList.contains('show');
+        closeAllFilterMenus();
+        closeTitleSearch();
+        if (!isOpen) {
+            box.classList.add('show');
+            document.getElementById('appNumberSearchInput').focus();
+        } else {
+            box.classList.remove('show');
+        }
+    }
+
+    function closeAppNumberSearch() {
+        document.getElementById('appNumberSearchBox').classList.remove('show');
+    }
+
+    function applyAppNumberSearch() {
+        const val = document.getElementById('appNumberSearchInput').value.trim();
+        selectedFilters.appNumberSearch = val;
+        const btn = document.getElementById('filter-btn-appNumber');
+        if (val) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+        closeAppNumberSearch();
+        currentPage = 1;
+        loadPosts();
+    }
+
+    function resetAppNumberSearch() {
+        document.getElementById('appNumberSearchInput').value = '';
+        selectedFilters.appNumberSearch = '';
+        document.getElementById('filter-btn-appNumber').classList.remove('active');
+        closeAppNumberSearch();
+        currentPage = 1;
+        loadPosts();
+    }
+
+    function updateFilterButtonUI(type) {
+        const btn = document.getElementById(`filter-btn-${type}`);
+        const dropdown = document.getElementById(`dropdown-${type}`);
+        if (!btn || !dropdown) return;
+        
+        if (selectedFilters[type] !== 'ALL') {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+
+        Array.from(dropdown.children).forEach(child => {
+            if (child.innerText === selectedFilters[type] || (selectedFilters[type] === 'ALL' && child.innerText === 'All')) {
+                child.classList.add('selected');
+            } else {
+                child.classList.remove('selected');
+            }
+        });
+    }
+
+    function execCmd(command, value = null) {
+        document.execCommand(command, false, value);
+    }
+
+    function insertTable(targetEditorId) {
+        const rows = prompt("Enter number of rows:", "2");
+        const cols = prompt("Enter number of columns:", "2");
+        if (rows && cols) {
+            let tableHTML = "<table border='1'><tbody>";
+            for (let i = 0; i < parseInt(rows); i++) {
+                tableHTML += "<tr>";
+                for (let j = 0; j < parseInt(cols); j++) {
+                    tableHTML += "<td>&nbsp;</td>";
+                }
+                tableHTML += "</tr>";
+            }
+            tableHTML += "</tbody></table><p>&nbsp;</p>";
+            const target = document.getElementById(targetEditorId);
+            target.focus();
+            execCmd('insertHTML', tableHTML);
+        }
+    }
+
+    function triggerImageUpload(inputId) {
+        document.getElementById(inputId).click();
+    }
+
+    function triggerFileUpload(inputId) {
+        document.getElementById(inputId).click();
+    }
+
+    function handleFileSelect(event) {
+        const files = Array.from(event.target.files);
+        const maxSize = 5 * 1024 * 1024;
+
+        for (let f of files) {
+            if (selectedFiles.length >= 3) {
+                alert("You can attach up to 3 files maximum.");
+                break;
+            }
+            if (f.size > maxSize) {
+                alert(`File "${f.name}" exceeds the 5MB size limit.`);
+                continue;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                selectedFiles.push({
+                    name: f.name,
+                    size: f.size,
+                    type: f.type,
+                    data: e.target.result
+                });
+                renderSelectedFiles();
+            };
+            reader.readAsDataURL(f);
+        }
+        event.target.value = "";
+    }
+
+    function renderSelectedFiles() {
+        const container = document.getElementById('fileUploadDisplay');
+        const list = document.getElementById('fileList');
+        list.innerHTML = "";
+
+        if (selectedFiles.length === 0) {
+            container.style.display = "none";
+            return;
+        }
+
+        container.style.display = "block";
+        selectedFiles.forEach((f, idx) => {
+            const li = document.createElement('li');
+            li.className = 'file-item';
+            const sizeKB = (f.size / 1024).toFixed(1);
+            li.innerHTML = `
+                <span>📎 ${escapeHtml(f.name)} (${sizeKB} KB)</span>
+                <span class="remove-file" onclick="removeSelectedFile(${idx})">&times; Remove</span>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function removeSelectedFile(index) {
+        selectedFiles.splice(index, 1);
+        renderSelectedFiles();
+    }
+
+    function insertImage(event, targetEditorId) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const target = document.getElementById(targetEditorId);
+                target.focus();
+                execCmd('insertHTML', `<img src="${e.target.result}" alt="Uploaded Image">`);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function setupPasteHandler(editorId) {
+        const targetEditor = document.getElementById(editorId);
+        targetEditor.addEventListener('paste', function(e) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let item of items) {
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    const blob = item.getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        targetEditor.focus();
+                        execCmd('insertHTML', `<img src="${e.target.result}" alt="Pasted Image">`);
+                    };
+                    reader.readAsDataURL(blob);
+                    e.preventDefault();
+                    break;
+                }
+            }
+        });
+    }
+
+    postForm.addEventListener("submit", async function(e) {
+        e.preventDefault();
+
+        const currentUser = sessionStorage.getItem("currentUser");
+        if (!currentUser) {
+            alert("Please login first.");
+            checkLoginStatus();
+            return;
+        }
+
+        const category = document.getElementById("category").value;
+        const appNumber = document.getElementById("appNumber").value.trim();
+        const issueType = document.getElementById("issueType").value;
+        const urgency = document.getElementById("urgency").value;
+        const title = document.getElementById("title").value.trim();
+        
+        hideResizer();
+
+        if (!title) {
+            alert("Please enter title.");
+            document.getElementById("title").focus();
+            return;
+        }
+
+        const contentHtml = editor.innerHTML.trim();
+        const contentText = editor.innerText.replace(/\s/g, '');
+
+        if (!contentHtml || contentText.length === 0) {
+            alert("Please enter post content.");
+            editor.focus();
+            return;
+        }
+
+        const newPost = {
+            category: category,
+            app_number: appNumber,
+            issue_type: issueType,
+            urgency: urgency,
+            author: currentUser,
+            title: title,
+            content: contentHtml,
+            files: selectedFiles,
+            status: 'PENDING',
+            reask_status: ''
+        };
+
+        const { error } = await supabaseClient.from('posts').insert([newPost]);
+
+        if (error) {
+            alert("Error saving post: " + error.message);
+        } else {
+            postForm.reset();
+            editor.innerHTML = "";
+            selectedFiles = [];
+            renderSelectedFiles();
+            document.getElementById('editorColorIndicator').style.backgroundColor = '#000000';
+            currentPage = 1;
+            loadPosts();
+        }
+    });
+
+    commentForm.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        if (!currentPostId) return;
+
+        const currentUser = sessionStorage.getItem("currentUser");
+        if (!currentUser) {
+            alert("Please login first.");
+            checkLoginStatus();
+            return;
+        }
+
+        hideResizer();
+        const text = commentEditor.innerHTML.trim();
+
+        if (!text) {
+            alert("Please enter comment content.");
+            return;
+        }
+
+        const newComment = {
+            post_id: currentPostId,
+            author: currentUser,
+            text: text
+        };
+
+        const { error } = await supabaseClient.from('comments').insert([newComment]);
+
+        if (error) {
+            alert("Error saving comment: " + error.message);
+        } else {
+            commentForm.reset();
+            commentEditor.innerHTML = "";
+            document.getElementById('commentColorIndicator').style.backgroundColor = '#000000';
+            openModal(currentPostId);
+            loadPosts();
+        }
+    });
+
+    async function toggleStatus(id, currentStatus) {
+        if (currentStatus !== 'PENDING') {
+            return; 
+        }
+
+        const inputPw = prompt("Enter passcode to change status to Waiting Approval:");
+        if (inputPw === null) return;
+
+        if (inputPw === "1357") {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const { error } = await supabaseClient
+                .from('posts')
+                .update({ 
+                    status: 'Waiting Approval',
+                    reask_status: 'Plz Review',
+                    action_completed_at: todayStr,
+                    completed_at: todayStr
+                })
+                .eq('id', id);
+
+            if (!error) {
+                loadPosts();
+            } else {
+                alert("Error updating status: " + error.message);
+            }
+        } else {
+            alert("Incorrect passcode.");
+        }
+    }
+
+    async function handleApprovalClick(id, postAuthor, currentStatus, currentApproval) {
+        const currentUser = sessionStorage.getItem("currentUser");
+        if (!currentUser) {
+            alert("Please login first.");
+            checkLoginStatus();
+            return;
+        }
+
+        if (currentUser.trim().toLowerCase() !== postAuthor.trim().toLowerCase()) {
+            alert("Only the post author can change the Approval status.");
+            return;
+        }
+
+        if (currentStatus === 'Waiting Approval' && currentApproval === 'Plz Review') {
+            const choice = prompt("Choose Approval status:\n1: Good\n2: Re-ask\n(Enter 1 or 2)");
+            if (!choice) return;
+
+            let selectedVal = "";
+            if (choice.trim() === "1") selectedVal = "Good";
+            else if (choice.trim() === "2") selectedVal = "Re-ask";
+            else {
+                alert("Invalid option. Please enter 1 or 2.");
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to change Approval to '${selectedVal}'?`)) return;
+
+            const updateData = { reask_status: selectedVal };
+
+            if (selectedVal === 'Good') {
+                updateData.status = 'DONE';
+            }
+
+            const { error } = await supabaseClient
+                .from('posts')
+                .update(updateData)
+                .eq('id', id);
+
+            if (!error) {
+                loadPosts();
+            } else {
+                alert("Error updating Approval: " + error.message);
+            }
+            return;
+        }
+
+        if (currentApproval === 'Re-ask') {
+            if (!confirm("Do you want to change Approval to 'Good' and complete this post?")) return;
+
+            const { error } = await supabaseClient
+                .from('posts')
+                .update({ 
+                    reask_status: 'Good',
+                    status: 'DONE'
+                })
+                .eq('id', id);
+
+            if (!error) {
+                loadPosts();
+            } else {
+                alert("Error updating Approval: " + error.message);
+            }
+        }
+    }
+
+    function calculateDayAction(post) {
+        let startDateStr = post.created_at;
+        if (!startDateStr) return 0;
+
+        let startDate = new Date(startDateStr);
+        if (isNaN(startDate.getTime())) {
+            startDate = new Date(startDateStr.split('T')[0]);
+        }
+        
+        let endDate = new Date();
+        if (post.action_completed_at) {
+            endDate = new Date(post.action_completed_at);
+        } else if (post.completed_at) {
+            endDate = new Date(post.completed_at);
+        }
+
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+
+        const diffTime = endDate.getTime() - startDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays < 0 ? 0 : diffDays;
+    }
+
+    function calculateDayApproval(post) {
+        let startDateStr = post.created_at;
+        if (!startDateStr) return 0;
+
+        let startDate = new Date(startDateStr);
+        if (isNaN(startDate.getTime())) {
+            startDate = new Date(startDateStr.split('T')[0]);
+        }
+        
+        let endDate = new Date();
+        if (post.status === 'DONE' && post.completed_at) {
+            endDate = new Date(post.completed_at);
+        }
+
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+
+        const diffTime = endDate.getTime() - startDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays < 0 ? 0 : diffDays;
+    }
+
+    function setSort(field) {
+        if (currentSortField === field) {
+            currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+        } else {
+            currentSortField = field;
+            currentSortOrder = 'asc';
+        }
+        loadPosts();
+    }
+
+    function updateSortIcons() {
+        const fields = ['author', 'status', 'day_action', 'day_approval', 'id', 'created_at', 'completed_at'];
+        fields.forEach(field => {
+            const iconSpan = document.getElementById(`sort-${field}`);
+            const container = document.getElementById(`th-container-${field}`);
+            if (iconSpan && container) {
+                if (field === currentSortField) {
+                    container.classList.add('active');
+                    iconSpan.innerHTML = currentSortOrder === 'asc' ? '▲' : '▼';
+                } else {
+                    container.classList.remove('active');
+                    iconSpan.innerHTML = '▲▼';
+                }
+            }
+        });
+    }
+
+    function sendMailToUser() {
+        const selectEl = document.getElementById("userMailSelect");
+        const selectedEmail = selectEl.value;
+
+        if (!selectedEmail) {
+            alert("Please select a user to send an email.");
+            return;
+        }
+
+        const subject = encodeURIComponent("[IT Issue Bulletin] Inquiry");
+        window.location.href = `mailto:${selectedEmail}?subject=${subject}`;
+    }
+
+    async function loadPosts() {
+        let userEmailMap = {};
+        const mailSelectEl = document.getElementById("userMailSelect");
+        mailSelectEl.innerHTML = '<option value="" disabled selected>Select User</option>';
+
+        const { data: usersData, error: userError } = await supabaseClient
+            .from('app_users')
+            .select('username, email');
+
+        if (!userError && usersData) {
+            usersData.forEach(u => {
+                if (u.username && u.email) {
+                    const uname = u.username.trim();
+                    const uemail = u.email.trim();
+                    userEmailMap[uname.toLowerCase()] = uemail;
+
+                    const opt = document.createElement("option");
+                    opt.value = uemail;
+                    opt.innerText = `${uname} (${uemail})`;
+                    mailSelectEl.appendChild(opt);
+                }
+            });
+        }
+
+        const { data: posts, error } = await supabaseClient
+            .from('posts')
+            .select('*, comments(*)');
+
+        if (error) {
+            console.error("Error loading posts:", error);
+            return;
+        }
+
+        let filteredPosts = posts || [];
+
+        const authors = Array.from(new Set(filteredPosts.map(p => p.author || 'Guest'))).filter(Boolean);
+        filterOptions.author = ['ALL', ...authors];
+        
+        initFilterMenus();
+
+        if (selectedFilters.category !== "ALL") {
+            filteredPosts = filteredPosts.filter(p => p.category === selectedFilters.category);
+        }
+        // App No 검색어 필터링 적용
+        if (selectedFilters.appNumberSearch) {
+            const query = selectedFilters.appNumberSearch.toLowerCase();
+            filteredPosts = filteredPosts.filter(p => p.app_number && p.app_number.toLowerCase().includes(query));
+        }
+        if (selectedFilters.issueType !== "ALL") {
+            filteredPosts = filteredPosts.filter(p => p.issue_type === selectedFilters.issueType);
+        }
+        if (selectedFilters.urgency !== "ALL") {
+            filteredPosts = filteredPosts.filter(p => (p.urgency || 'Normal') === selectedFilters.urgency);
+        }
+        if (selectedFilters.author !== "ALL") {
+            filteredPosts = filteredPosts.filter(p => (p.author || 'Guest') === selectedFilters.author);
+        }
+        if (selectedFilters.status !== "ALL") {
+            filteredPosts = filteredPosts.filter(p => p.status === selectedFilters.status);
+        }
+        if (selectedFilters.reask !== "ALL") {
+            filteredPosts = filteredPosts.filter(p => p.reask_status === selectedFilters.reask);
+        }
+        if (selectedFilters.titleSearch) {
+            const query = selectedFilters.titleSearch.toLowerCase();
+            filteredPosts = filteredPosts.filter(p => p.title && p.title.toLowerCase().includes(query));
+        }
+
+        filteredPosts.sort((a, b) => {
+            let valA, valB;
+
+            if (currentSortField === 'day_action') {
+                valA = calculateDayAction(a);
+                valB = calculateDayAction(b);
+            } else if (currentSortField === 'day_approval') {
+                valA = calculateDayApproval(a);
+                valB = calculateDayApproval(b);
+            } else {
+                valA = a[currentSortField] || "";
+                valB = b[currentSortField] || "";
+            }
+
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+
+            if (valA < valB) return currentSortOrder === "asc" ? -1 : 1;
+            if (valA > valB) return currentSortOrder === "asc" ? 1 : -1;
+            return 0;
+        });
+
+        updateSortIcons();
+
+        postList.innerHTML = "";
+
+        if (filteredPosts.length === 0) {
+            postList.innerHTML = `<tr><td colspan="13" class="empty-msg">No matching posts found.</td></tr>`;
+            renderPagination(0);
+            return;
+        }
+
+        const totalPosts = filteredPosts.length;
+        const totalPages = Math.ceil(totalPosts / postsPerPage);
+        
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIndex = (currentPage - 1) * postsPerPage;
+        const pagePosts = filteredPosts.slice(startIndex, startIndex + postsPerPage);
+
+        const currentUser = sessionStorage.getItem("currentUser") || "";
+
+        pagePosts.forEach((post, index) => {
+            const tr = document.createElement("tr");
+            const statusVal = post.status || 'PENDING';
+            let statusClass = 'status-pending';
+            let isStatusClickable = false;
+
+            if (statusVal === 'PENDING') {
+                statusClass = 'status-pending';
+                isStatusClickable = true;
+            } else if (statusVal === 'Waiting Approval') {
+                statusClass = 'status-waiting';
+            } else if (statusVal === 'DONE') {
+                statusClass = 'status-done';
+            }
+
+            const statusClickClass = isStatusClickable ? 'clickable' : 'disabled';
+
+            const dayActionDisplay = calculateDayAction(post);
+            const dayApprovalDisplay = calculateDayApproval(post);
+
+            const firstActionDateDisplay = post.completed_at || post.action_completed_at || "-";
+            const postDateDisplay = post.created_at ? post.created_at.split('T')[0] : "-";
+            
+            let approvalDisplayHtml = '-';
+            let approvalVal = post.reask_status;
+            const isAuthor = currentUser.trim().toLowerCase() === (post.author || '').trim().toLowerCase();
+
+            if (statusVal !== 'PENDING') {
+                if (!approvalVal) approvalVal = 'Plz Review';
+                
+                let badgeClass = 'approval-review';
+                let isApprovalClickable = false;
+
+                if ((approvalVal === 'Plz Review' || approvalVal === 'Re-ask') && isAuthor) {
+                    isApprovalClickable = true;
+                }
+
+                if (approvalVal === 'Plz Review') badgeClass = 'approval-review';
+                else if (approvalVal === 'Good') badgeClass = 'approval-good';
+                else if (approvalVal === 'Re-ask') badgeClass = 'approval-reask';
+
+                const clickClass = isApprovalClickable ? 'clickable' : 'disabled';
+                approvalDisplayHtml = `
+                    <span class="approval-badge ${badgeClass} ${clickClass}" 
+                          onclick="handleApprovalClick(${post.id}, '${escapeHtml(post.author || 'Guest')}', '${statusVal}', '${approvalVal}')">
+                        ${approvalVal}
+                    </span>
+                `;
+            }
+
+            const urgencyVal = post.urgency || 'Normal';
+            let urgencyClass = 'urgency-normal';
+            if (urgencyVal === 'Very Urgent') urgencyClass = 'urgency-very-urgent';
+            else if (urgencyVal === 'Urgent') urgencyClass = 'urgency-urgent';
+
+            const postNoDisplay = post.id || (startIndex + index + 1);
+
+            const authorName = post.author || 'Guest';
+            const authorEmail = userEmailMap[authorName.trim().toLowerCase()];
+            let authorDisplayHtml = escapeHtml(authorName);
+
+            if (authorEmail) {
+                const subject = encodeURIComponent(`[IT Bulletin] Regarding Issue: ${post.title}`);
+                authorDisplayHtml = `<a href="mailto:${authorEmail}?subject=${subject}" class="author-mail-link" title="Send email to ${authorEmail}">${escapeHtml(authorName)}</a>`;
+            }
+
+            tr.innerHTML = `
+                <td>${postNoDisplay}</td>
+                <td>${escapeHtml(post.category || '-')}</td>
+                <td>${escapeHtml(post.app_number || '-')}</td>
+                <td>${escapeHtml(post.issue_type)}</td>
+                <td><span class="urgency-badge ${urgencyClass}">${urgencyVal}</span></td>
+                <td class="title-cell">
+                    <a href="#" onclick="openModal(${post.id}); return false;" style="text-decoration: none; color: #333; font-weight: 500;">
+                        ${escapeHtml(post.title)} 
+                        ${post.comments && post.comments.length > 0 ? `<span style="color:#e74c3c; font-size:12px;">[${post.comments.length}]</span>` : ''}
+                        ${post.files && post.files.length > 0 ? `<span style="font-size:12px; color:#4a90e2; margin-left:4px;">📎${post.files.length}</span>` : ''}
+                    </a>
+                </td>
+                <td>${authorDisplayHtml}</td>
+                <td>
+                    <span class="status-badge ${statusClass} ${statusClickClass}" onclick="toggleStatus(${post.id}, '${statusVal}')">
+                        ${statusVal}
+                    </span>
+                </td>
+                <td>${postDateDisplay}</td>
+                <td>${firstActionDateDisplay}</td>
+                <td><span class="days-badge">${dayActionDisplay}</span></td>
+                <td><span class="days-badge">${dayApprovalDisplay}</span></td>
+                <td>${approvalDisplayHtml}</td>
+            `;
+            postList.appendChild(tr);
+        });
+
+        renderPagination(totalPages);
+    }
+
+    function renderPagination(totalPages) {
+        const paginationContainer = document.getElementById("pagination");
+        paginationContainer.innerHTML = "";
+
+        const label = document.createElement("span");
+        label.className = "page-label";
+        label.innerText = "Page";
+        paginationContainer.appendChild(label);
+
+        if (totalPages <= 0) totalPages = 1;
+
+        const svgFirst = `<svg viewBox="0 0 24 24"><path d="M18.41 16.59L13.83 12l4.58-4.59L17 6l-6 6 6 6zM6 6h2v12H6z"/></svg>`;
+        const svgPrev  = `<svg viewBox="0 0 24 24"><path d="M15.41 7.41L10.83 12l4.58 4.59L14 18l-6-6 6-6z"/></svg>`;
+        const svgNext  = `<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>`;
+        const svgLast  = `<svg viewBox="0 0 24 24"><path d="M5.59 7.41L10.17 12l-4.58 4.59L7 18l6-6-6-6zM16 6h2v12h-2z"/></svg>`;
+
+        const btnFirst = document.createElement("button");
+        btnFirst.innerHTML = svgFirst;
+        btnFirst.title = "First Page";
+        btnFirst.disabled = currentPage === 1;
+        btnFirst.onclick = () => {
+            currentPage = 1;
+            loadPosts();
+        };
+        paginationContainer.appendChild(btnFirst);
+
+        const btnPrev = document.createElement("button");
+        btnPrev.innerHTML = svgPrev;
+        btnPrev.title = "Previous Page";
+        btnPrev.disabled = currentPage === 1;
+        btnPrev.onclick = () => {
+            if (currentPage > 1) {
+                currentPage--;
+                loadPosts();
+            }
+        };
+        paginationContainer.appendChild(btnPrev);
+
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = startPage + 4;
+
+        if (endPage > totalPages) {
+            endPage = totalPages;
+            startPage = Math.max(1, endPage - 4);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const pageBtn = document.createElement("button");
+            pageBtn.innerText = i;
+            if (i === currentPage) pageBtn.classList.add("active");
+            pageBtn.onclick = () => {
+                currentPage = i;
+                loadPosts();
+            };
+            paginationContainer.appendChild(pageBtn);
+        }
+
+        const btnNext = document.createElement("button");
+        btnNext.innerHTML = svgNext;
+        btnNext.title = "Next Page";
+        btnNext.disabled = currentPage === totalPages;
+        btnNext.onclick = () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadPosts();
+            }
+        };
+        paginationContainer.appendChild(btnNext);
+
+        const btnLast = document.createElement("button");
+        btnLast.innerHTML = svgLast;
+        btnLast.title = "Last Page";
+        btnLast.disabled = currentPage === totalPages;
+        btnLast.onclick = () => {
+            currentPage = totalPages;
+            loadPosts();
+        };
+        paginationContainer.appendChild(btnLast);
+    }
+
+    async function openModal(id) {
+        const { data: post, error } = await supabaseClient
+            .from('posts')
+            .select('*, comments(*)')
+            .eq('id', id)
+            .single();
+
+        if (error || !post) return;
+
+        currentPostId = id;
+        document.getElementById("modalTitle").innerText = post.title;
+        document.getElementById("modalCategory").innerText = post.category || '-';
+        document.getElementById("modalAppNumber").innerText = post.app_number || '-';
+        document.getElementById("modalType").innerText = post.issue_type;
+        document.getElementById("modalUrgency").innerText = post.urgency || 'Normal';
+        document.getElementById("modalAuthor").innerText = post.author || 'Guest';
+        document.getElementById("modalDate").innerText = post.created_at ? post.created_at.split('T')[0] : "-";
+        document.getElementById("modalCompleteDate").innerText = post.completed_at || post.action_completed_at || "-";
+        document.getElementById("modalContent").innerHTML = post.content;
+
+        const filesContainer = document.getElementById('modalAttachedFiles');
+        const fileListContainer = document.getElementById('modalFileList');
+        fileListContainer.innerHTML = "";
+
+        if (post.files && post.files.length > 0) {
+            filesContainer.style.display = "block";
+            post.files.forEach(f => {
+                const a = document.createElement('a');
+                a.className = 'attached-file-link';
+                a.href = f.data;
+                a.download = f.name;
+                a.innerText = `📎 ${f.name} (${(f.size/1024).toFixed(1)} KB)`;
+                fileListContainer.appendChild(a);
+            });
+        } else {
+            filesContainer.style.display = "none";
+        }
+
+        renderComments(post.comments || []);
+        document.getElementById("modalOverlay").classList.add("active");
+    }
+
+    function closeModal() {
+        document.getElementById("modalOverlay").classList.remove("active");
+        currentPostId = null;
+        hideResizer();
+    }
+
+    function renderComments(comments) {
+        const commentList = document.getElementById("commentList");
+        commentList.innerHTML = "";
+
+        if (comments.length === 0) {
+            commentList.innerHTML = `<li style="color:#888; font-size:12px; text-align:center;">No comments yet.</li>`;
+            return;
+        }
+
+        comments.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+        comments.forEach(c => {
+            const formattedDate = new Date(c.created_at).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
+            const li = document.createElement("li");
+            li.className = "comment-item";
+            li.innerHTML = `
+                <div class="comment-author">
+                    <span>${escapeHtml(c.author)}</span>
+                    <span class="comment-date">${formattedDate}</span>
+                </div>
+                <div>${c.text}</div>
+            `;
+            commentList.appendChild(li);
+        });
+    }
+
+    function escapeHtml(text) {
+        if (!text) return "";
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+</script>
+
+</body>
+</html>
