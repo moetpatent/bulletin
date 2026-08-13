@@ -1064,7 +1064,6 @@
                         <div class="filter-dropdown" id="dropdown-category"></div>
                     </th>
 
-                    <!-- App No. 키워드 검색(Search) 방식으로 변경 -->
                     <th style="width: 8%;">
                         <div class="th-container" id="th-container-appNumber">
                             <span>App No.</span>
@@ -1264,7 +1263,7 @@
 
     let selectedFilters = {
         category: 'ALL',
-        appNumberSearch: '', // App No 키워드 검색
+        appNumberSearch: '',
         issueType: 'ALL',
         urgency: 'ALL',
         author: 'ALL',
@@ -1535,7 +1534,6 @@
         loadPosts();
     }
 
-    // App No 검색 팝업 토글 및 필터링 제어
     function toggleAppNumberSearch(e) {
         e.stopPropagation();
         const box = document.getElementById('appNumberSearchBox');
@@ -1876,7 +1874,9 @@
             const updateData = { reask_status: selectedVal };
 
             if (selectedVal === 'Good') {
+                const todayStr = new Date().toISOString().split('T')[0];
                 updateData.status = 'DONE';
+                updateData.approval_completed_at = todayStr;
             }
 
             const { error } = await supabaseClient
@@ -1895,11 +1895,13 @@
         if (currentApproval === 'Re-ask') {
             if (!confirm("Do you want to change Approval to 'Good' and complete this post?")) return;
 
+            const todayStr = new Date().toISOString().split('T')[0];
             const { error } = await supabaseClient
                 .from('posts')
                 .update({ 
                     reask_status: 'Good',
-                    status: 'DONE'
+                    status: 'DONE',
+                    approval_completed_at: todayStr
                 })
                 .eq('id', id);
 
@@ -1935,19 +1937,21 @@
         return diffDays < 0 ? 0 : diffDays;
     }
 
+    // Status가 DONE 및 Good 승인 완료 상태일 때만 approval_completed_at 기반 계산 (completed_at 완전 배제)
     function calculateDayApproval(post) {
+        if (post.status !== 'DONE' || post.reask_status !== 'Good') {
+            return null;
+        }
+
         let startDateStr = post.created_at;
-        if (!startDateStr) return 0;
+        if (!startDateStr) return null;
 
         let startDate = new Date(startDateStr);
         if (isNaN(startDate.getTime())) {
             startDate = new Date(startDateStr.split('T')[0]);
         }
         
-        let endDate = new Date();
-        if (post.status === 'DONE' && post.completed_at) {
-            endDate = new Date(post.completed_at);
-        }
+        let endDate = post.approval_completed_at ? new Date(post.approval_completed_at) : new Date();
 
         startDate.setHours(0, 0, 0, 0);
         endDate.setHours(0, 0, 0, 0);
@@ -2040,7 +2044,6 @@
         if (selectedFilters.category !== "ALL") {
             filteredPosts = filteredPosts.filter(p => p.category === selectedFilters.category);
         }
-        // App No 검색어 필터링 적용
         if (selectedFilters.appNumberSearch) {
             const query = selectedFilters.appNumberSearch.toLowerCase();
             filteredPosts = filteredPosts.filter(p => p.app_number && p.app_number.toLowerCase().includes(query));
@@ -2074,6 +2077,8 @@
             } else if (currentSortField === 'day_approval') {
                 valA = calculateDayApproval(a);
                 valB = calculateDayApproval(b);
+                if (valA === null) valA = -1;
+                if (valB === null) valB = -1;
             } else {
                 valA = a[currentSortField] || "";
                 valB = b[currentSortField] || "";
@@ -2126,7 +2131,12 @@
             const statusClickClass = isStatusClickable ? 'clickable' : 'disabled';
 
             const dayActionDisplay = calculateDayAction(post);
-            const dayApprovalDisplay = calculateDayApproval(post);
+            
+            // 승인 완료 전일 경우 '-' 처리
+            const dayApprovalVal = calculateDayApproval(post);
+            const dayApprovalDisplay = (dayApprovalVal !== null) 
+                ? `<span class="days-badge">${dayApprovalVal}</span>` 
+                : '-';
 
             const firstActionDateDisplay = post.completed_at || post.action_completed_at || "-";
             const postDateDisplay = post.created_at ? post.created_at.split('T')[0] : "-";
@@ -2196,7 +2206,7 @@
                 <td>${postDateDisplay}</td>
                 <td>${firstActionDateDisplay}</td>
                 <td><span class="days-badge">${dayActionDisplay}</span></td>
-                <td><span class="days-badge">${dayApprovalDisplay}</span></td>
+                <td>${dayApprovalDisplay}</td>
                 <td>${approvalDisplayHtml}</td>
             `;
             postList.appendChild(tr);
