@@ -1937,30 +1937,29 @@
         return diffDays < 0 ? 0 : diffDays;
     }
 
-  function calculateDayApproval(post) {
-    // Status가 DONE이 아니거나 reask_status가 Good이 아니면 무조건 null 반환
-    if (post.status !== 'DONE' || post.reask_status !== 'Good') {
-        return null;
+    // Status가 DONE 및 Good 승인 완료 상태일 때만 approval_completed_at 기반 계산 (completed_at 완전 배제)
+    function calculateDayApproval(post) {
+        if (post.status !== 'DONE' || post.reask_status !== 'Good') {
+            return null;
+        }
+
+        let startDateStr = post.created_at;
+        if (!startDateStr) return null;
+
+        let startDate = new Date(startDateStr);
+        if (isNaN(startDate.getTime())) {
+            startDate = new Date(startDateStr.split('T')[0]);
+        }
+        
+        let endDate = post.approval_completed_at ? new Date(post.approval_completed_at) : new Date();
+
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+
+        const diffTime = endDate.getTime() - startDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays < 0 ? 0 : diffDays;
     }
-
-    let startDateStr = post.created_at;
-    if (!startDateStr) return null;
-
-    let startDate = new Date(startDateStr);
-    if (isNaN(startDate.getTime())) {
-        startDate = new Date(startDateStr.split('T')[0]);
-    }
-    
-    // 오직 승인 완료일(approval_completed_at)만 참조
-    let endDate = post.approval_completed_at ? new Date(post.approval_completed_at) : new Date();
-
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-
-    const diffTime = endDate.getTime() - startDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays < 0 ? 0 : diffDays;
-}
 
     function setSort(field) {
         if (currentSortField === field) {
