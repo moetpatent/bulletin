@@ -356,9 +356,9 @@
     /* Table Section */
     .table-container {
       width: 100%;
-      overflow-x: hidden;
       border: 1px solid var(--border);
       border-radius: 6px;
+      position: relative;
     }
 
     table {
@@ -376,6 +376,159 @@
       border-bottom: 2px solid var(--border);
       user-select: none;
       white-space: nowrap;
+      position: relative;
+    }
+
+    .clickable-th {
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+    .clickable-th:hover {
+      background-color: #e2e8f0;
+      color: var(--primary);
+    }
+
+    /* SVG Filter / Search Icons */
+    .excel-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      margin-left: 4px;
+      vertical-align: -2px;
+      color: #64748b;
+      transition: color 0.15s, transform 0.15s;
+    }
+    .clickable-th:hover .excel-icon {
+      color: var(--primary);
+    }
+    .excel-icon.active {
+      color: #2563eb !important;
+      transform: scale(1.15);
+    }
+
+    .active-badge {
+      display: inline-block;
+      background-color: #2563eb;
+      color: #ffffff;
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      margin-left: 4px;
+      vertical-align: middle;
+      font-weight: 600;
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .comment-count-badge {
+      color: #dc2626;
+      font-weight: 700;
+      font-size: 0.82rem;
+      margin-left: 5px;
+      letter-spacing: -0.5px;
+    }
+
+    /* Floating Dropdown & Search Popovers */
+    .custom-popover {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+      z-index: 999;
+      display: none;
+      text-align: left;
+      margin-top: 4px;
+    }
+
+    /* Multi-select filter menu */
+    .filter-menu {
+      min-width: 175px;
+      padding: 6px 0;
+    }
+
+    .filter-menu-list {
+      max-height: 220px;
+      overflow-y: auto;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 4px;
+    }
+
+    .filter-menu-item {
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #334155;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .filter-menu-item:hover {
+      background-color: #f8fafc;
+      color: var(--primary);
+    }
+
+    .filter-menu-item input[type="checkbox"] {
+      cursor: pointer;
+      width: 14px;
+      height: 14px;
+      margin: 0;
+      padding: 0;
+    }
+
+    .popover-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      padding: 8px 10px 4px 10px;
+    }
+
+    .popover-actions button {
+      padding: 4px 10px;
+      font-size: 0.76rem;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-apply-filter {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+    }
+    .btn-apply-filter:hover { background: var(--primary-hover); }
+
+    .btn-clear-filter {
+      background: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+    }
+    .btn-clear-filter:hover { background: #e2e8f0; }
+
+    /* Search Popover */
+    .search-menu {
+      padding: 10px;
+      min-width: 210px;
+    }
+
+    .search-menu input {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 0.84rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      box-sizing: border-box;
+      margin-bottom: 8px;
     }
 
     tbody td {
@@ -917,19 +1070,108 @@
       <table>
         <thead>
           <tr>
-            <th style="width: 5%;">Post No. ▼</th>
-            <th style="width: 8%;">Category 🍸</th>
-            <th style="width: 9%;">App No. 🔍</th>
-            <th style="width: 10%;">Issue Type 🍸</th>
-            <th style="width: 7%;">Urgency 🍸</th>
-            <th class="title-col-th" style="width: auto;">Title 🔍</th>
-            <th style="width: 6%;">Author ▲▼</th>
-            <th style="width: 8%;">Status ▲▼</th>
-            <th style="width: 7%;">Post Date ▲▼</th>
-            <th style="width: 7%;">First Action ▲▼</th>
-            <th style="width: 6%;">Day (Action) ▲▼</th>
-            <th style="width: 6%;">Day (Approval) ▲▼</th>
-            <th style="width: 8%;">Approval 🍸</th>
+            <!-- Post No. : 소팅 -->
+            <th class="clickable-th" style="width: 5%;" onclick="handleSort('id')" title="Click to sort by Post No.">
+              Post No. <span id="sort-indicator-id">▼</span>
+            </th>
+            
+            <!-- Category : 엑셀 스타일 다중선택 필터 -->
+            <th class="clickable-th" style="width: 8%;" onclick="openPopover(event, 'popover-category')" title="Click to filter Category">
+              Category 
+              <svg class="excel-icon" id="icon-filter-category" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
+              </svg>
+              <span id="badge-category"></span>
+              <div id="popover-category" class="custom-popover filter-menu" onclick="event.stopPropagation()"></div>
+            </th>
+
+            <!-- App No. : 엑셀 스타일 검색 -->
+            <th class="clickable-th" style="width: 9%;" onclick="openPopover(event, 'popover-app-no')" title="Click to search App No.">
+              App No. 
+              <svg class="excel-icon" id="icon-search-app-no" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <span id="badge-app-no"></span>
+              <div id="popover-app-no" class="custom-popover search-menu" onclick="event.stopPropagation()">
+                <input type="text" id="popover-search-app-no" placeholder="Search App No..." onkeydown="if(event.key==='Enter') applySearch('appNo')" />
+                <div class="popover-actions">
+                  <button type="button" class="btn-clear-filter" onclick="clearSearch('appNo')">Clear</button>
+                  <button type="button" class="btn-apply-filter" onclick="applySearch('appNo')">Search</button>
+                </div>
+              </div>
+            </th>
+
+            <!-- Issue Type : 엑셀 스타일 다중선택 필터 -->
+            <th class="clickable-th" style="width: 10%;" onclick="openPopover(event, 'popover-issue-type')" title="Click to filter Issue Type">
+              Issue Type 
+              <svg class="excel-icon" id="icon-filter-issue-type" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
+              </svg>
+              <span id="badge-issue-type"></span>
+              <div id="popover-issue-type" class="custom-popover filter-menu" onclick="event.stopPropagation()"></div>
+            </th>
+
+            <!-- Urgency : 기능 없음 -->
+            <th style="width: 7%;">Urgency</th>
+
+            <!-- Title : 엑셀 스타일 검색 -->
+            <th class="title-col-th clickable-th" style="width: auto;" onclick="openPopover(event, 'popover-title')" title="Click to search Title">
+              Title 
+              <svg class="excel-icon" id="icon-search-title" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <span id="badge-title"></span>
+              <div id="popover-title" class="custom-popover search-menu" onclick="event.stopPropagation()">
+                <input type="text" id="popover-search-title" placeholder="Search Title keywords..." onkeydown="if(event.key==='Enter') applySearch('title')" />
+                <div class="popover-actions">
+                  <button type="button" class="btn-clear-filter" onclick="clearSearch('title')">Clear</button>
+                  <button type="button" class="btn-apply-filter" onclick="applySearch('title')">Search</button>
+                </div>
+              </div>
+            </th>
+
+            <!-- Author : 엑셀 스타일 다중선택 필터 -->
+            <th class="clickable-th" style="width: 6%;" onclick="openPopover(event, 'popover-author')" title="Click to filter Author">
+              Author 
+              <svg class="excel-icon" id="icon-filter-author" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
+              </svg>
+              <span id="badge-author"></span>
+              <div id="popover-author" class="custom-popover filter-menu" onclick="event.stopPropagation()"></div>
+            </th>
+
+            <!-- Status : 엑셀 스타일 다중선택 필터 -->
+            <th class="clickable-th" style="width: 8%;" onclick="openPopover(event, 'popover-status')" title="Click to filter Status">
+              Status 
+              <svg class="excel-icon" id="icon-filter-status" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
+              </svg>
+              <span id="badge-status"></span>
+              <div id="popover-status" class="custom-popover filter-menu" onclick="event.stopPropagation()"></div>
+            </th>
+
+            <!-- Post Date : 기능 없음 -->
+            <th style="width: 7%;">Post Date</th>
+
+            <!-- First Action : 소팅 -->
+            <th class="clickable-th" style="width: 7%;" onclick="handleSort('first_action_at')" title="Click to sort by First Action Date">
+              First Action <span id="sort-indicator-first_action_at">▲▼</span>
+            </th>
+
+            <!-- Day (action) : 소팅 -->
+            <th class="clickable-th" style="width: 6%;" onclick="handleSort('day_action')" title="Click to sort by Day (Action)">
+              Day (Action) <span id="sort-indicator-day_action">▲▼</span>
+            </th>
+
+            <!-- Day (Approval) : 소팅 -->
+            <th class="clickable-th" style="width: 6%;" onclick="handleSort('day_approval')" title="Click to sort by Day (Approval)">
+              Day (Approval) <span id="sort-indicator-day_approval">▲▼</span>
+            </th>
+
+            <!-- Approval : 기능 없음 -->
+            <th style="width: 8%;">Approval</th>
           </tr>
         </thead>
         <tbody id="posts-tbody">
@@ -950,11 +1192,270 @@
 
     let currentUser = localStorage.getItem('bulletin_auth_user') || null;
     let postsData = [];
+    let commentsCountMap = {}; // Maps post_id -> comment count
     let attachedFiles = [];
     let currentDetailPostId = null;
     
     // Global Cache for app_users (username -> email)
     let appUsersMap = {};
+
+    // ==========================================
+    // Table Sorting, Filtering & Search States
+    // ==========================================
+    let currentSort = {
+      column: 'id',
+      order: 'desc' // 'asc' | 'desc'
+    };
+
+    // Filters are now Arrays for Multi-Select support!
+    let currentFilters = {
+      category: [],
+      issueType: [],
+      author: [],
+      status: [],
+      appNo: '',
+      title: ''
+    };
+
+    // Popover Toggle Handlers
+    function closeAllPopovers() {
+      document.querySelectorAll('.custom-popover').forEach(el => {
+        el.style.display = 'none';
+      });
+    }
+
+    function openPopover(e, popoverId) {
+      e.stopPropagation();
+      const popoverEl = document.getElementById(popoverId);
+      if (!popoverEl) return;
+
+      const isAlreadyOpen = (popoverEl.style.display === 'block');
+      closeAllPopovers();
+
+      if (!isAlreadyOpen) {
+        buildAllDropdowns(); // Refresh options & checkboxes
+        popoverEl.style.display = 'block';
+
+        // Auto focus search input if search popover
+        const searchInput = popoverEl.querySelector('input[type="text"]');
+        if (searchInput) {
+          setTimeout(() => {
+            searchInput.focus();
+            searchInput.select();
+          }, 50);
+        }
+      }
+    }
+
+    // Close when clicking anywhere outside
+    document.addEventListener('click', (e) => {
+      closeAllPopovers();
+    });
+
+    // Build Dropdown Menus with Multi-Select Checkboxes
+    function buildAllDropdowns() {
+      // 1. Category
+      const catOptions = ["Patent", "Utility model", "Design", "Other Services"];
+      buildMultiSelectMenu('popover-category', 'category', catOptions);
+
+      // 2. Issue Type
+      const issueOptions = ["Logic Error", "Data Correction", "Legal Status Correction", "Question", "Others"];
+      buildMultiSelectMenu('popover-issue-type', 'issueType', issueOptions);
+
+      // 3. Status
+      const statusOptions = ["PENDING", "Waiting Approval", "DONE"];
+      buildMultiSelectMenu('popover-status', 'status', statusOptions);
+
+      // 4. Author
+      const uniqueAuthors = Array.from(new Set(postsData.map(p => p.author).filter(Boolean))).sort();
+      buildMultiSelectMenu('popover-author', 'author', uniqueAuthors);
+    }
+
+    function buildMultiSelectMenu(popoverId, filterKey, options) {
+      const container = document.getElementById(popoverId);
+      if (!container) return;
+
+      const selectedList = currentFilters[filterKey] || [];
+      const isAllSelected = (selectedList.length === 0 || selectedList.length === options.length);
+
+      let html = `
+        <div class="filter-menu-list">
+          <label class="filter-menu-item" style="font-weight: 700; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+            <input type="checkbox" class="cb-select-all" data-key="${filterKey}" ${isAllSelected ? 'checked' : ''} onchange="toggleSelectAll(this, '${popoverId}')" />
+            <span>(Select All)</span>
+          </label>
+      `;
+
+      options.forEach(opt => {
+        const isChecked = selectedList.length === 0 || selectedList.includes(opt);
+        html += `
+          <label class="filter-menu-item">
+            <input type="checkbox" class="cb-item" data-key="${filterKey}" value="${opt}" ${isChecked ? 'checked' : ''} onchange="onCheckboxItemChange('${popoverId}')" />
+            <span>${opt}</span>
+          </label>
+        `;
+      });
+
+      html += `
+        </div>
+        <div class="popover-actions">
+          <button type="button" class="btn-clear-filter" onclick="clearMultiFilter('${filterKey}')">Clear</button>
+          <button type="button" class="btn-apply-filter" onclick="applyMultiFilter('${popoverId}', '${filterKey}')">Apply</button>
+        </div>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    function toggleSelectAll(selectAllEl, popoverId) {
+      const popover = document.getElementById(popoverId);
+      if (!popover) return;
+      const checkboxes = popover.querySelectorAll('.cb-item');
+      checkboxes.forEach(cb => { cb.checked = selectAllEl.checked; });
+    }
+
+    function onCheckboxItemChange(popoverId) {
+      const popover = document.getElementById(popoverId);
+      if (!popover) return;
+      const selectAllEl = popover.querySelector('.cb-select-all');
+      const itemCheckboxes = popover.querySelectorAll('.cb-item');
+      const allChecked = Array.from(itemCheckboxes).every(cb => cb.checked);
+      if (selectAllEl) selectAllEl.checked = allChecked;
+    }
+
+    function applyMultiFilter(popoverId, filterKey) {
+      const popover = document.getElementById(popoverId);
+      if (!popover) return;
+
+      const checkedItems = Array.from(popover.querySelectorAll('.cb-item:checked')).map(cb => cb.value);
+      const totalItems = popover.querySelectorAll('.cb-item').length;
+
+      // If all are checked or none are checked, treat as empty (no filter / show all)
+      if (checkedItems.length === 0 || checkedItems.length === totalItems) {
+        currentFilters[filterKey] = [];
+      } else {
+        currentFilters[filterKey] = checkedItems;
+      }
+
+      closeAllPopovers();
+      updateFilterBadges();
+      renderPostsTable();
+    }
+
+    function clearMultiFilter(filterKey) {
+      currentFilters[filterKey] = [];
+      closeAllPopovers();
+      updateFilterBadges();
+      renderPostsTable();
+    }
+
+    // Apply & Clear Search Popovers
+    function applySearch(field) {
+      if (field === 'appNo') {
+        const val = document.getElementById('popover-search-app-no').value.trim().toLowerCase();
+        currentFilters.appNo = val;
+      } else if (field === 'title') {
+        const val = document.getElementById('popover-search-title').value.trim().toLowerCase();
+        currentFilters.title = val;
+      }
+      closeAllPopovers();
+      updateFilterBadges();
+      renderPostsTable();
+    }
+
+    function clearSearch(field) {
+      if (field === 'appNo') {
+        document.getElementById('popover-search-app-no').value = '';
+        currentFilters.appNo = '';
+      } else if (field === 'title') {
+        document.getElementById('popover-search-title').value = '';
+        currentFilters.title = '';
+      }
+      closeAllPopovers();
+      updateFilterBadges();
+      renderPostsTable();
+    }
+
+    // Update Sorting UI Indicators
+    function updateSortIndicators() {
+      const sortableCols = ['id', 'first_action_at', 'day_action', 'day_approval'];
+      sortableCols.forEach(col => {
+        const el = document.getElementById(`sort-indicator-${col}`);
+        if (!el) return;
+        if (currentSort.column === col) {
+          el.textContent = currentSort.order === 'asc' ? '▲' : '▼';
+          el.style.color = '#1e3a8a';
+          el.style.fontWeight = 'bold';
+        } else {
+          el.textContent = '▲▼';
+          el.style.color = '#64748b';
+          el.style.fontWeight = 'normal';
+        }
+      });
+    }
+
+    // Update Badges & Active Icon State on Header
+    function updateFilterBadges() {
+      // Helper for multi-select label
+      function getBadgeText(arr) {
+        if (!arr || arr.length === 0) return '';
+        if (arr.length === 1) return arr[0];
+        return `${arr.length} selected`;
+      }
+
+      // Category
+      const catBadge = document.getElementById('badge-category');
+      const catIcon = document.getElementById('icon-filter-category');
+      const catText = getBadgeText(currentFilters.category);
+      if (catBadge) catBadge.innerHTML = catText ? `<span class="active-badge">${catText}</span>` : '';
+      if (catIcon) catIcon.classList.toggle('active', currentFilters.category.length > 0);
+
+      // Issue Type
+      const issueBadge = document.getElementById('badge-issue-type');
+      const issueIcon = document.getElementById('icon-filter-issue-type');
+      const issueText = getBadgeText(currentFilters.issueType);
+      if (issueBadge) issueBadge.innerHTML = issueText ? `<span class="active-badge">${issueText}</span>` : '';
+      if (issueIcon) issueIcon.classList.toggle('active', currentFilters.issueType.length > 0);
+
+      // Author
+      const authorBadge = document.getElementById('badge-author');
+      const authorIcon = document.getElementById('icon-filter-author');
+      const authorText = getBadgeText(currentFilters.author);
+      if (authorBadge) authorBadge.innerHTML = authorText ? `<span class="active-badge">${authorText}</span>` : '';
+      if (authorIcon) authorIcon.classList.toggle('active', currentFilters.author.length > 0);
+
+      // Status
+      const statusBadge = document.getElementById('badge-status');
+      const statusIcon = document.getElementById('icon-filter-status');
+      const statusText = getBadgeText(currentFilters.status);
+      if (statusBadge) statusBadge.innerHTML = statusText ? `<span class="active-badge">${statusText}</span>` : '';
+      if (statusIcon) statusIcon.classList.toggle('active', currentFilters.status.length > 0);
+
+      // App No.
+      const appNoBadge = document.getElementById('badge-app-no');
+      const appNoIcon = document.getElementById('icon-search-app-no');
+      if (appNoBadge) appNoBadge.innerHTML = currentFilters.appNo ? `<span class="active-badge">${currentFilters.appNo}</span>` : '';
+      if (appNoIcon) appNoIcon.classList.toggle('active', !!currentFilters.appNo);
+
+      // Title
+      const titleBadge = document.getElementById('badge-title');
+      const titleIcon = document.getElementById('icon-search-title');
+      if (titleBadge) titleBadge.innerHTML = currentFilters.title ? `<span class="active-badge">${currentFilters.title}</span>` : '';
+      if (titleIcon) titleIcon.classList.toggle('active', !!currentFilters.title);
+    }
+
+    // Sort Click Handler
+    function handleSort(column) {
+      closeAllPopovers();
+      if (currentSort.column === column) {
+        currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.column = column;
+        currentSort.order = (column === 'id') ? 'desc' : 'asc';
+      }
+      updateSortIndicators();
+      renderPostsTable();
+    }
 
     // ==========================================
     // Dynamic User Loading & Caching from Supabase
@@ -975,7 +1476,6 @@
           return;
         }
 
-        // Cache users and populate select dropdown
         selectEl.innerHTML = '<option value="">Select User</option>' + data.map(user => {
           const emailVal = user.email || '';
           appUsersMap[user.username] = emailVal;
@@ -1013,7 +1513,6 @@
         `Best regards,\n${senderName}`
       );
 
-      // Open Outlook / default email client
       window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
     }
 
@@ -1311,17 +1810,36 @@
       return `${year}-${month}-${day}`;
     }
 
-    // Fetch Posts
+    // Fetch Posts & Comment Counts
     async function loadPosts() {
       try {
-        const { data, error } = await supabaseClient
+        const { data: posts, error: postsError } = await supabaseClient
           .from('posts')
           .select('*')
           .order('id', { ascending: false });
 
-        if (error) throw error;
+        if (postsError) throw postsError;
+        postsData = posts || [];
 
-        postsData = data || [];
+        try {
+          const { data: comments, error: commentsError } = await supabaseClient
+            .from('comments')
+            .select('post_id');
+
+          if (!commentsError && comments) {
+            commentsCountMap = {};
+            comments.forEach(c => {
+              const pid = c.post_id;
+              commentsCountMap[pid] = (commentsCountMap[pid] || 0) + 1;
+            });
+          }
+        } catch (cErr) {
+          console.warn('Failed to load comment counts:', cErr);
+        }
+
+        buildAllDropdowns();
+        updateSortIndicators();
+        updateFilterBadges();
         renderPostsTable();
       } catch (err) {
         console.error('Fetch error:', err);
@@ -1331,7 +1849,7 @@
       }
     }
 
-    // Render Table
+    // Render Table with Filtering, Searching, and Sorting
     function renderPostsTable() {
       const tbody = document.getElementById('posts-tbody');
       if (postsData.length === 0) {
@@ -1341,36 +1859,118 @@
 
       const todayIso = new Date().toISOString();
 
-      tbody.innerHTML = postsData.map(post => {
+      // 1. Process Derived Properties
+      let processedList = postsData.map(post => {
         const postDate = post.created_at || post.date;
         const status = (post.status || 'PENDING').trim();
-        const appNo = post.app_number || '-';
-        const rawApproval = post.reask_status;
 
-        // First Action Date
         let firstActionDate = post.first_action_at;
         if (!firstActionDate && status === 'DONE') {
           firstActionDate = post.action_completed_at || postDate;
         }
 
-        // 1) Day (Action)
-        let dayAction = '-';
+        let dayActionVal = null;
+        let dayActionStr = '-';
         if (firstActionDate) {
-          dayAction = getDiffDays(postDate, firstActionDate);
+          const diff = getDiffDays(postDate, firstActionDate);
+          if (diff !== '-') { dayActionVal = diff; dayActionStr = diff; }
         } else {
-          dayAction = getDiffDays(postDate, todayIso);
+          const diff = getDiffDays(postDate, todayIso);
+          if (diff !== '-') { dayActionVal = diff; dayActionStr = diff; }
         }
 
-        // 2) Day (Approval)
-        let dayApproval = '-';
+        let dayApprovalVal = null;
+        let dayApprovalStr = '-';
         if (post.day_approval !== null && post.day_approval !== undefined && post.day_approval !== '') {
-          dayApproval = post.day_approval;
+          dayApprovalVal = Number(post.day_approval);
+          dayApprovalStr = post.day_approval;
         } else if (status === 'DONE') {
           const completedDate = post.approval_completed_at || post.action_completed_at || post.completed_at || firstActionDate || postDate;
-          dayApproval = getDiffDays(postDate, completedDate);
+          const diff = getDiffDays(postDate, completedDate);
+          if (diff !== '-') { dayApprovalVal = diff; dayApprovalStr = diff; }
         }
 
-        // 3) Status Badge
+        return {
+          ...post,
+          _postDate: postDate,
+          _status: status,
+          _firstActionDate: firstActionDate,
+          _dayActionVal: dayActionVal,
+          _dayActionStr: dayActionStr,
+          _dayApprovalVal: dayApprovalVal,
+          _dayApprovalStr: dayApprovalStr
+        };
+      });
+
+      // 2. Filter & Search with Multi-select Arrays
+      let filtered = processedList.filter(post => {
+        // Multi-select Category filter
+        if (currentFilters.category && currentFilters.category.length > 0) {
+          if (!currentFilters.category.includes(post.category || '')) return false;
+        }
+        // Multi-select Issue Type filter
+        if (currentFilters.issueType && currentFilters.issueType.length > 0) {
+          if (!currentFilters.issueType.includes(post.issue_type || '')) return false;
+        }
+        // Multi-select Author filter
+        if (currentFilters.author && currentFilters.author.length > 0) {
+          if (!currentFilters.author.includes(post.author || '')) return false;
+        }
+        // Multi-select Status filter
+        if (currentFilters.status && currentFilters.status.length > 0) {
+          if (!currentFilters.status.includes(post._status)) return false;
+        }
+        // App No. search
+        if (currentFilters.appNo && !(post.app_number || '').toLowerCase().includes(currentFilters.appNo)) return false;
+        // Title search
+        if (currentFilters.title && !(post.title || '').toLowerCase().includes(currentFilters.title)) return false;
+        return true;
+      });
+
+      // 3. Sort
+      filtered.sort((a, b) => {
+        let valA, valB;
+        if (currentSort.column === 'id') {
+          valA = Number(a.id) || 0;
+          valB = Number(b.id) || 0;
+        } else if (currentSort.column === 'first_action_at') {
+          valA = a._firstActionDate ? new Date(a._firstActionDate).getTime() : 0;
+          valB = b._firstActionDate ? new Date(b._firstActionDate).getTime() : 0;
+        } else if (currentSort.column === 'day_action') {
+          valA = a._dayActionVal !== null ? a._dayActionVal : -999999;
+          valB = b._dayActionVal !== null ? b._dayActionVal : -999999;
+        } else if (currentSort.column === 'day_approval') {
+          valA = a._dayApprovalVal !== null ? a._dayApprovalVal : -999999;
+          valB = b._dayApprovalVal !== null ? b._dayApprovalVal : -999999;
+        } else {
+          return 0;
+        }
+
+        if (valA < valB) return currentSort.order === 'asc' ? -1 : 1;
+        if (valA > valB) return currentSort.order === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="13" style="padding: 24px; color: #64748b;">No matching posts found.</td></tr>';
+        return;
+      }
+
+      // 4. Render Table Rows
+      tbody.innerHTML = filtered.map(post => {
+        const postDate = post._postDate;
+        const status = post._status;
+        const appNo = post.app_number || '-';
+        const rawApproval = post.reask_status;
+        const firstActionDate = post._firstActionDate;
+        const dayAction = post._dayActionStr;
+        const dayApproval = post._dayApprovalStr;
+
+        // Comment count badge
+        const cCount = commentsCountMap[post.id] || 0;
+        const commentBadgeHtml = cCount > 0 ? `<span class="comment-count-badge">[${cCount}]</span>` : '';
+
+        // Status Badge
         const statusClass = `status-${status.replace(/\s+/g, '-')}`;
         const isStatusClickable = (status === 'PENDING');
         const statusBtnHtml = `
@@ -1381,7 +1981,7 @@
           </button>
         `;
 
-        // 4) Approval Badge
+        // Approval Badge
         let approvalHtml = '<span class="approval-none">-</span>';
 
         if (status === 'Waiting Approval') {
@@ -1422,7 +2022,7 @@
             <td>${post.issue_type || '-'}</td>
             <td><span class="urgency-badge ${urgencyClass}">${post.urgency || 'Normal'}</span></td>
             <td class="title-cell" title="${post.title || ''}">
-              <a class="title-link" onclick="openPostDetailModal(${post.id})">${post.title || ''}</a>
+              <a class="title-link" onclick="openPostDetailModal(${post.id})">${post.title || ''}</a>${commentBadgeHtml}
             </td>
             <td>
               <a class="author-link" onclick="sendMailToAuthor('${post.author}', ${post.id}, '${safeTitle}')" title="Click to send email to ${post.author || 'Author'} via Outlook">
@@ -1460,7 +2060,6 @@
       document.getElementById('modal-post-date').textContent = formatDate(post.created_at || post.date);
       document.getElementById('modal-post-content').innerHTML = post.content || '<p style="color:#94a3b8;">No content</p>';
 
-      // Render Attached Files
       const filesContainer = document.getElementById('modal-post-files');
       if (post.files && Array.isArray(post.files) && post.files.length > 0) {
         filesContainer.innerHTML = post.files.map(f => `
@@ -1496,6 +2095,8 @@
 
         const comments = data || [];
         countEl.textContent = comments.length;
+        
+        commentsCountMap[postId] = comments.length;
 
         if (comments.length === 0) {
           commentsListEl.innerHTML = '<div style="color: #94a3b8; font-size: 0.85rem; padding: 6px 0;">No comments yet.</div>';
@@ -1535,7 +2136,6 @@
         return;
       }
 
-      // Exact mapping with DB comments table schema (`text` column)
       const newComment = {
         post_id: currentDetailPostId,
         author: currentUser,
@@ -1551,6 +2151,8 @@
 
         input.value = '';
         await loadComments(currentDetailPostId);
+        
+        renderPostsTable();
       } catch (err) {
         alert('Failed to add comment: ' + err.message);
       }
