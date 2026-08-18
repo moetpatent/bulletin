@@ -1244,6 +1244,9 @@
               First Action <span id="sort-indicator-first_action_at">▲▼</span>
             </th>
 
+            <!-- By : 기능 없음 (Status를 Waiting Approval로 바꾼 user) -->
+            <th style="width: 6%;" title="User who changed the status from PENDING to Waiting Approval">By</th>
+
             <!-- Day (action) : 소팅 -->
             <th class="clickable-th" style="width: 6%;" onclick="handleSort('day_action')" title="Click to sort by Day (Action)">
               Day (Action) <span id="sort-indicator-day_action">▲▼</span>
@@ -1260,7 +1263,7 @@
         </thead>
         <tbody id="posts-tbody">
           <tr>
-            <td colspan="13" style="padding: 30px; color: #94a3b8;">Loading bulletin data...</td>
+            <td colspan="14" style="padding: 30px; color: #94a3b8;">Loading bulletin data...</td>
           </tr>
         </tbody>
       </table>
@@ -1948,7 +1951,7 @@
       } catch (err) {
         console.error('Fetch error:', err);
         document.getElementById('posts-tbody').innerHTML = `
-          <tr><td colspan="13" style="color: red; padding: 20px;">Failed to load data: ${err.message}</td></tr>
+          <tr><td colspan="14" style="color: red; padding: 20px;">Failed to load data: ${err.message}</td></tr>
         `;
       }
     }
@@ -1957,7 +1960,7 @@
     function renderPostsTable() {
       const tbody = document.getElementById('posts-tbody');
       if (postsData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="13" style="padding: 20px;">No posts found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" style="padding: 20px;">No posts found.</td></tr>';
         currentFilteredPosts = [];
         return;
       }
@@ -2057,7 +2060,7 @@
       });
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="13" style="padding: 24px; color: #64748b;">No matching posts found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" style="padding: 24px; color: #64748b;">No matching posts found.</td></tr>';
         currentFilteredPosts = [];
         return;
       }
@@ -2140,6 +2143,7 @@
             <td>${statusBtnHtml}</td>
             <td>${formatDate(postDate)}</td>
             <td>${firstActionDate ? formatDate(firstActionDate) : '-'}</td>
+            <td>${post.first_action_by || '-'}</td>
             <td>${dayAction}</td>
             <td>${dayApproval}</td>
             <td>${approvalHtml}</td>
@@ -2184,6 +2188,7 @@
           'Status': post._status,
           'Post Date': formatDate(post._postDate),
           'First Action': post._firstActionDate ? formatDate(post._firstActionDate) : '-',
+          'By': post.first_action_by || '-',
           'Day (Action)': post._dayActionStr,
           'Day (Approval)': post._dayApprovalStr,
           'Approval': approvalLabel
@@ -2204,6 +2209,7 @@
         { wch: 16 }, // Status
         { wch: 12 }, // Post Date
         { wch: 12 }, // First Action
+        { wch: 12 }, // By
         { wch: 12 }, // Day (Action)
         { wch: 13 }, // Day (Approval)
         { wch: 12 }  // Approval
@@ -2341,6 +2347,11 @@
         return;
       }
 
+      if (!currentUser) {
+        alert('Please log in first so we can record who made this change.');
+        return;
+      }
+
       const inputPw = prompt('Please enter password:');
       if (inputPw === null) return;
 
@@ -2353,6 +2364,7 @@
       const updateData = {
         status: 'Waiting Approval',
         first_action_at: nowIso,
+        first_action_by: currentUser || null,
         reask_status: 'EMPTY'
       };
 
