@@ -2184,6 +2184,7 @@
           'Issue Type': post.issue_type || '-',
           'Urgency': post.urgency || 'Normal',
           'Title': post.title || '',
+          'Content': htmlToPlainText(post.content),
           'Author': post.author || '-',
           'Status': post._status,
           'Post Date': formatDate(post._postDate),
@@ -2205,6 +2206,7 @@
         { wch: 14 }, // Issue Type
         { wch: 10 }, // Urgency
         { wch: 40 }, // Title
+        { wch: 50 }, // Content
         { wch: 12 }, // Author
         { wch: 16 }, // Status
         { wch: 12 }, // Post Date
@@ -2220,6 +2222,39 @@
 
       const todayStr = new Date().toISOString().slice(0, 10);
       XLSX.writeFile(workbook, `Patent_IT_Bulletin_${todayStr}.xlsx`);
+    }
+
+    // Converts the rich-text (HTML) post content into plain text for Excel export:
+    // strips tags/images/tables down to their text, while keeping line breaks
+    // roughly where a reader would expect them (paragraphs, list items, table rows).
+    function htmlToPlainText(html) {
+      if (!html) return '';
+
+      const container = document.createElement('div');
+      container.innerHTML = html;
+
+      // Turn block-level boundaries into line breaks before reading textContent,
+      // so paragraphs/list items/table rows don't run together.
+      container.querySelectorAll('br').forEach(el => el.replaceWith('\n'));
+      container.querySelectorAll('p, div, li, tr, h1, h2, h3, h4, h5, h6').forEach(el => {
+        el.appendChild(document.createTextNode('\n'));
+      });
+      container.querySelectorAll('td, th').forEach(el => {
+        el.appendChild(document.createTextNode('\t'));
+      });
+      // Images carry no text of their own; drop them entirely rather than
+      // leaving a blank gap.
+      container.querySelectorAll('img').forEach(el => el.remove());
+
+      const text = container.textContent || '';
+
+      // Collapse runs of blank lines and trim trailing whitespace on each line.
+      return text
+        .split('\n')
+        .map(line => line.replace(/[ \t]+$/g, ''))
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
     }
 
     // ==========================================
