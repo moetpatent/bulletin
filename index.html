@@ -8,6 +8,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- EmailJS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <!-- SheetJS (xlsx) - used for exporting the bulletin table to Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
     :root {
@@ -331,6 +333,22 @@
     }
 
     .btn-mail:hover { background-color: #15803d; }
+
+    .btn-export-excel {
+      background-color: #1d6f42;
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-export-excel:hover { background-color: #145232; }
 
     .pagination {
       display: flex;
@@ -1118,6 +1136,7 @@
           <option value="">Loading users...</option>
         </select>
         <button class="btn-mail" onclick="sendMailToUser()">Send Mail to</button>
+        <button class="btn-export-excel" onclick="exportPostsToExcel()" title="Export the currently filtered/sorted table to an Excel file">⬇ Export to Excel</button>
       </div>
 
       <div class="pagination">
@@ -1260,6 +1279,7 @@
     let commentsCountMap = {}; // Maps post_id -> comment count
     let attachedFiles = [];
     let currentDetailPostId = null;
+    let currentFilteredPosts = []; // Last rendered (filtered + sorted) rows, used for Excel export
     
     // Global Cache for app_users (username -> email)
     let appUsersMap = {};
@@ -1938,6 +1958,7 @@
       const tbody = document.getElementById('posts-tbody');
       if (postsData.length === 0) {
         tbody.innerHTML = '<tr><td colspan="13" style="padding: 20px;">No posts found.</td></tr>';
+        currentFilteredPosts = [];
         return;
       }
 
@@ -2037,8 +2058,11 @@
 
       if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="13" style="padding: 24px; color: #64748b;">No matching posts found.</td></tr>';
+        currentFilteredPosts = [];
         return;
       }
+
+      currentFilteredPosts = filtered;
 
       // 4. Render Table Rows
       tbody.innerHTML = filtered.map(post => {
@@ -2122,6 +2146,74 @@
           </tr>
         `;
       }).join('');
+    }
+
+    // ==========================================
+    // Export Table to Excel (SheetJS)
+    // ==========================================
+    function exportPostsToExcel() {
+      if (typeof XLSX === 'undefined') {
+        alert('Excel export library failed to load. Please check your internet connection and try again.');
+        return;
+      }
+
+      if (!currentFilteredPosts || currentFilteredPosts.length === 0) {
+        alert('There is no data to export (the current filter/search has no matching rows).');
+        return;
+      }
+
+      // Build plain rows that mirror exactly what is shown in the on-screen table,
+      // in the same column order, using the already-filtered & sorted dataset.
+      const rows = currentFilteredPosts.map(post => {
+        const rawApproval = post.reask_status;
+        let approvalLabel = '-';
+        if (post._status === 'Waiting Approval') {
+          approvalLabel = (!rawApproval || rawApproval === 'EMPTY') ? 'Plz Review' : rawApproval;
+        } else if (post._status === 'DONE') {
+          approvalLabel = (rawApproval && rawApproval !== 'EMPTY') ? rawApproval : 'Good';
+        }
+
+        return {
+          'Post No.': post.id,
+          'Category': post.category || '-',
+          'App No.': post.app_number || '-',
+          'Issue Type': post.issue_type || '-',
+          'Urgency': post.urgency || 'Normal',
+          'Title': post.title || '',
+          'Author': post.author || '-',
+          'Status': post._status,
+          'Post Date': formatDate(post._postDate),
+          'First Action': post._firstActionDate ? formatDate(post._firstActionDate) : '-',
+          'Day (Action)': post._dayActionStr,
+          'Day (Approval)': post._dayApprovalStr,
+          'Approval': approvalLabel
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+
+      // Reasonable column widths so the exported file is readable out of the box
+      worksheet['!cols'] = [
+        { wch: 9 },  // Post No.
+        { wch: 12 }, // Category
+        { wch: 14 }, // App No.
+        { wch: 14 }, // Issue Type
+        { wch: 10 }, // Urgency
+        { wch: 40 }, // Title
+        { wch: 12 }, // Author
+        { wch: 16 }, // Status
+        { wch: 12 }, // Post Date
+        { wch: 12 }, // First Action
+        { wch: 12 }, // Day (Action)
+        { wch: 13 }, // Day (Approval)
+        { wch: 12 }  // Approval
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Bulletin Board');
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(workbook, `Patent_IT_Bulletin_${todayStr}.xlsx`);
     }
 
     // ==========================================
