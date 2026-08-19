@@ -1244,8 +1244,15 @@
               First Action <span id="sort-indicator-first_action_at">▲▼</span>
             </th>
 
-            <!-- By : 기능 없음 (Status를 Waiting Approval로 바꾼 user) -->
-            <th style="width: 6%;" title="User who changed the status from PENDING to Waiting Approval">By</th>
+            <!-- By : 엑셀 스타일 다중선택 필터 (Status를 Waiting Approval로 바꾼 user) -->
+            <th class="clickable-th" style="width: 6%;" onclick="openPopover(event, 'popover-first-action-by')" title="Click to filter By (User who changed the status from PENDING to Waiting Approval)">
+              By 
+              <svg class="excel-icon" id="icon-filter-first-action-by" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
+              </svg>
+              <span id="badge-first-action-by"></span>
+              <div id="popover-first-action-by" class="custom-popover filter-menu" onclick="event.stopPropagation()"></div>
+            </th>
 
             <!-- Day (action) : 소팅 -->
             <th class="clickable-th" style="width: 6%;" onclick="handleSort('day_action')" title="Click to sort by Day (Action)">
@@ -1301,6 +1308,7 @@
       issueType: [],
       author: [],
       status: [],
+      firstActionBy: [],
       appNo: '',
       title: ''
     };
@@ -1357,6 +1365,10 @@
       // 4. Author
       const uniqueAuthors = Array.from(new Set(postsData.map(p => p.author).filter(Boolean))).sort();
       buildMultiSelectMenu('popover-author', 'author', uniqueAuthors);
+
+      // 5. By (first_action_by)
+      const uniqueFirstActionBy = Array.from(new Set(postsData.map(p => p.first_action_by).filter(Boolean))).sort();
+      buildMultiSelectMenu('popover-first-action-by', 'firstActionBy', uniqueFirstActionBy);
     }
 
     function buildMultiSelectMenu(popoverId, filterKey, options) {
@@ -1518,6 +1530,13 @@
       const statusText = getBadgeText(currentFilters.status);
       if (statusBadge) statusBadge.innerHTML = statusText ? `<span class="active-badge">${statusText}</span>` : '';
       if (statusIcon) statusIcon.classList.toggle('active', currentFilters.status.length > 0);
+
+      // By (first_action_by)
+      const firstActionByBadge = document.getElementById('badge-first-action-by');
+      const firstActionByIcon = document.getElementById('icon-filter-first-action-by');
+      const firstActionByText = getBadgeText(currentFilters.firstActionBy);
+      if (firstActionByBadge) firstActionByBadge.innerHTML = firstActionByText ? `<span class="active-badge">${firstActionByText}</span>` : '';
+      if (firstActionByIcon) firstActionByIcon.classList.toggle('active', currentFilters.firstActionBy.length > 0);
 
       // App No.
       const appNoBadge = document.getElementById('badge-app-no');
@@ -2027,6 +2046,10 @@
         // Multi-select Status filter
         if (currentFilters.status && currentFilters.status.length > 0) {
           if (!currentFilters.status.includes(post._status)) return false;
+        }
+        // Multi-select By (first_action_by) filter
+        if (currentFilters.firstActionBy && currentFilters.firstActionBy.length > 0) {
+          if (!currentFilters.firstActionBy.includes(post.first_action_by || '')) return false;
         }
         // App No. search
         if (currentFilters.appNo && !(post.app_number || '').toLowerCase().includes(currentFilters.appNo)) return false;
