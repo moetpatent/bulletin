@@ -382,7 +382,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.86rem;
+      font-size: 0.7rem;
       text-align: center;
     }
 
@@ -629,6 +629,30 @@
     .approval-Re-ask { background-color: #dc2626; }
     .approval-Plz-Review { background-color: #ea580c; }
     .approval-none { color: #94a3b8; font-weight: normal; background: none; }
+
+    /* Attention Toggle (raised-hand icon, author-only) */
+    .attention-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border: none;
+      background: none;
+      border-radius: 6px;
+      padding: 0;
+      cursor: pointer;
+      font-size: 1.1rem;
+      line-height: 1;
+      color: #cbd5e1;
+      transition: background-color 0.1s, color 0.1s;
+    }
+    .attention-toggle-btn:hover { background-color: #f1f5f9; }
+    .attention-toggle-btn.active { color: #d97706; }
+    .attention-toggle-btn.active:hover { background-color: #fef3c7; }
+    .attention-toggle-btn.locked { cursor: default; color: #e2e8f0; }
+    .attention-toggle-btn.locked:hover { background-color: transparent; }
+    .attention-toggle-btn:disabled { cursor: not-allowed; }
 
     /* Clickable Author Link to Mail */
     .author-link {
@@ -1236,6 +1260,9 @@
               <div id="popover-status" class="custom-popover filter-menu" onclick="event.stopPropagation()"></div>
             </th>
 
+            <!-- Attention : Author가 토글 (raised-hand icon). Status가 DONE이 되면 강제로 꺼지고 잠김 -->
+            <th style="width: 6%;" title="Author can raise/lower attention. Locked off once Status is DONE.">Attention</th>
+
             <!-- Post Date : 기능 없음 -->
             <th style="width: 7%;">Post Date</th>
 
@@ -1270,7 +1297,7 @@
         </thead>
         <tbody id="posts-tbody">
           <tr>
-            <td colspan="14" style="padding: 30px; color: #94a3b8;">Loading bulletin data...</td>
+            <td colspan="15" style="padding: 30px; color: #94a3b8;">Loading bulletin data...</td>
           </tr>
         </tbody>
       </table>
@@ -1970,7 +1997,7 @@
       } catch (err) {
         console.error('Fetch error:', err);
         document.getElementById('posts-tbody').innerHTML = `
-          <tr><td colspan="14" style="color: red; padding: 20px;">Failed to load data: ${err.message}</td></tr>
+          <tr><td colspan="15" style="color: red; padding: 20px;">Failed to load data: ${err.message}</td></tr>
         `;
       }
     }
@@ -1979,7 +2006,7 @@
     function renderPostsTable() {
       const tbody = document.getElementById('posts-tbody');
       if (postsData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="14" style="padding: 20px;">No posts found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="15" style="padding: 20px;">No posts found.</td></tr>';
         currentFilteredPosts = [];
         return;
       }
@@ -2083,7 +2110,7 @@
       });
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="14" style="padding: 24px; color: #64748b;">No matching posts found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="15" style="padding: 24px; color: #64748b;">No matching posts found.</td></tr>';
         currentFilteredPosts = [];
         return;
       }
@@ -2148,6 +2175,28 @@
         const urgencyClass = `urgency-${(post.urgency || 'Normal').replace(/\s+/g, '-')}`;
         const safeTitle = (post.title || '').replace(/'/g, "\\'");
 
+        // Attention Toggle (raised-hand icon)
+        // - Only the post's author can toggle it on/off.
+        // - Once Status is DONE, attention is force-cleared and can never be toggled again.
+        // NOTE: the ✋ emoji renders with its own built-in color regardless of CSS `color`,
+        // so the icon glyph itself must only be present in the markup when attention is ON.
+        const isAuthorOfPost = (post.author === currentUser);
+        const attentionOn = !!post.attention;
+        let attentionHtml;
+        if (status === 'DONE') {
+          attentionHtml = `<span class="attention-toggle-btn locked" title="Locked: post is DONE"></span>`;
+        } else if (isAuthorOfPost) {
+          attentionHtml = `
+            <button type="button" class="attention-toggle-btn ${attentionOn ? 'active' : ''}" 
+                    onclick="toggleAttention(${post.id})" 
+                    title="${attentionOn ? 'Click to remove attention' : 'Click to raise attention'}">${attentionOn ? '✋' : ''}</button>
+          `;
+        } else {
+          attentionHtml = attentionOn
+            ? `<span class="attention-toggle-btn active" style="cursor:default;" title="Attention raised by ${post.author || 'author'}">✋</span>`
+            : '';
+        }
+
         return `
           <tr>
             <td>${post.id}</td>
@@ -2164,6 +2213,7 @@
               </a>
             </td>
             <td>${statusBtnHtml}</td>
+            <td>${attentionHtml}</td>
             <td>${formatDate(postDate)}</td>
             <td>${firstActionDate ? formatDate(firstActionDate) : '-'}</td>
             <td>${post.first_action_by || '-'}</td>
@@ -2173,6 +2223,40 @@
           </tr>
         `;
       }).join('');
+    }
+
+    // Attention Toggle Handler (Author-only, disabled once Status is DONE)
+    async function toggleAttention(postId) {
+      const post = postsData.find(p => p.id === postId);
+      if (!post) return;
+
+      if (post.author !== currentUser) {
+        alert(`Only the author (${post.author}) can toggle attention.`);
+        return;
+      }
+
+      if ((post.status || 'PENDING').trim() === 'DONE') {
+        // Safety net: should not be reachable from the UI (button isn't rendered when DONE),
+        // but guard here too since Status can change between renders.
+        alert('This post is DONE. Attention can no longer be toggled.');
+        return;
+      }
+
+      const newValue = !post.attention;
+
+      try {
+        const { error } = await supabaseClient
+          .from('posts')
+          .update({ attention: newValue })
+          .eq('id', postId);
+
+        if (error) throw error;
+
+        post.attention = newValue;
+        renderPostsTable();
+      } catch (err) {
+        alert('Failed to update attention: ' + err.message);
+      }
     }
 
     // ==========================================
@@ -2210,6 +2294,7 @@
           'Content': htmlToPlainText(post.content),
           'Author': post.author || '-',
           'Status': post._status,
+          'Attention': post.attention ? 'Yes' : '-',
           'Post Date': formatDate(post._postDate),
           'First Action': post._firstActionDate ? formatDate(post._firstActionDate) : '-',
           'By': post.first_action_by || '-',
@@ -2232,6 +2317,7 @@
         { wch: 50 }, // Content
         { wch: 12 }, // Author
         { wch: 16 }, // Status
+        { wch: 10 }, // Attention
         { wch: 12 }, // Post Date
         { wch: 12 }, // First Action
         { wch: 12 }, // By
@@ -2464,7 +2550,8 @@
           action_completed_at: todayDateStr,
           completed_at: todayDateStr,
           approval_completed_at: nowIso,
-          day_approval: (post.day_approval !== null && post.day_approval !== undefined) ? post.day_approval : calculatedDay
+          day_approval: (post.day_approval !== null && post.day_approval !== undefined) ? post.day_approval : calculatedDay,
+          attention: false
         };
 
         try {
@@ -2496,7 +2583,8 @@
           action_completed_at: todayDateStr,
           completed_at: todayDateStr,
           approval_completed_at: nowIso,
-          day_approval: (post.day_approval !== null && post.day_approval !== undefined) ? post.day_approval : calculatedDay
+          day_approval: (post.day_approval !== null && post.day_approval !== undefined) ? post.day_approval : calculatedDay,
+          attention: false
         };
 
         try {
