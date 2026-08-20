@@ -350,6 +350,62 @@
 
     .btn-export-excel:hover { background-color: #145232; }
 
+    .btn-export-excel-icon {
+      background: none;
+      border: none;
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: transform 0.15s, background-color 0.15s;
+    }
+
+    .btn-export-excel-icon:hover {
+      background-color: #f1f5f9;
+      transform: scale(1.08);
+    }
+
+    .pagination-export-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .post-count-display {
+      font-size: 0.85rem;
+      color: #475569;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .post-count-display .count-highlight {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .btn-reset-filters {
+      background-color: #1d6f42;
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-reset-filters:hover {
+      background-color: #145232;
+    }
+
     .pagination {
       display: flex;
       gap: 4px;
@@ -423,7 +479,8 @@
     }
     .excel-icon.active {
       color: #2563eb !important;
-      transform: scale(1.15);
+      transform: scale(1.3);
+      filter: drop-shadow(0 0 0.5px #2563eb);
     }
 
     .active-badge {
@@ -1155,21 +1212,32 @@
     <!-- 2. Controls Bar (Mail & Pagination) -->
     <div class="controls-header">
       <div class="mail-bar">
+        <span id="post-count-display" class="post-count-display"></span>
+        <button class="btn-reset-filters" onclick="resetFiltersAndSearch()" title="Clear all applied filters and searches">↺ Filter/Search Reset</button>
         <!-- Dynamic User Select populated from app_users -->
         <select id="select-user">
           <option value="">Loading users...</option>
         </select>
         <button class="btn-mail" onclick="sendMailToUser()">Send Mail to</button>
-        <button class="btn-export-excel" onclick="exportPostsToExcel()" title="Export the currently filtered/sorted table to an Excel file">⬇ Export to Excel</button>
       </div>
 
-      <div class="pagination">
-        <span>Page</span>
-        <button>|&lt;</button>
-        <button>&lt;</button>
-        <button class="active">1</button>
-        <button>&gt;</button>
-        <button>&gt;|</button>
+      <div class="pagination-export-group">
+        <div class="pagination">
+          <span>Page</span>
+          <button>|&lt;</button>
+          <button>&lt;</button>
+          <button class="active">1</button>
+          <button>&gt;</button>
+          <button>&gt;|</button>
+        </div>
+
+        <button class="btn-export-excel-icon" onclick="exportPostsToExcel()" title="Export the currently filtered/sorted table to an Excel file">
+          <svg viewBox="0 0 32 32" width="29" height="29">
+            <rect x="2" y="4" width="19" height="24" rx="2.5" fill="#185c37"/>
+            <rect x="5.5" y="7.5" width="12" height="17" rx="1" fill="#21a366"/>
+            <path d="M7.2 10.5h2.15l1.7 2.85 1.7-2.85h2.15l-2.75 4.5 2.85 4.5h-2.2l-1.8-2.95-1.8 2.95H6.9l2.85-4.5-2.55-4.5z" fill="#ffffff"/>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -1189,7 +1257,6 @@
               <svg class="excel-icon" id="icon-filter-category" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
               </svg>
-              <span id="badge-category"></span>
               <div id="popover-category" class="custom-popover filter-menu" onclick="event.stopPropagation()"></div>
             </th>
 
@@ -1200,7 +1267,6 @@
                 <circle cx="11" cy="11" r="7"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
-              <span id="badge-app-no"></span>
               <div id="popover-app-no" class="custom-popover search-menu" onclick="event.stopPropagation()">
                 <input type="text" id="popover-search-app-no" placeholder="Search App No..." onkeydown="if(event.key==='Enter') applySearch('appNo')" />
                 <div class="popover-actions">
@@ -1216,23 +1282,27 @@
               <svg class="excel-icon" id="icon-filter-issue-type" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
               </svg>
-              <span id="badge-issue-type"></span>
               <div id="popover-issue-type" class="custom-popover filter-menu" onclick="event.stopPropagation()"></div>
             </th>
 
-            <!-- Urgency : 기능 없음 -->
-            <th style="width: 7%;">Urgency</th>
+            <!-- Urgency : 엑셀 스타일 다중선택 필터 -->
+            <th class="clickable-th" style="width: 7%;" onclick="openPopover(event, 'popover-urgency')" title="Click to filter Urgency">
+              Urgency 
+              <svg class="excel-icon" id="icon-filter-urgency" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
+              </svg>
+              <div id="popover-urgency" class="custom-popover filter-menu" onclick="event.stopPropagation()"></div>
+            </th>
 
-            <!-- Title : 엑셀 스타일 검색 -->
-            <th class="title-col-th clickable-th" style="width: auto;" onclick="openPopover(event, 'popover-title')" title="Click to search Title">
+            <!-- Title : 엑셀 스타일 검색 (Title + Content) -->
+            <th class="title-col-th clickable-th" style="width: auto;" onclick="openPopover(event, 'popover-title')" title="Click to search Title & Content">
               Title 
               <svg class="excel-icon" id="icon-search-title" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="7"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
-              <span id="badge-title"></span>
               <div id="popover-title" class="custom-popover search-menu" onclick="event.stopPropagation()">
-                <input type="text" id="popover-search-title" placeholder="Search Title keywords..." onkeydown="if(event.key==='Enter') applySearch('title')" />
+                <input type="text" id="popover-search-title" placeholder="Search Title & Content keywords..." onkeydown="if(event.key==='Enter') applySearch('title')" />
                 <div class="popover-actions">
                   <button type="button" class="btn-clear-filter" onclick="clearSearch('title')">Clear</button>
                   <button type="button" class="btn-apply-filter" onclick="applySearch('title')">Search</button>
@@ -1246,7 +1316,6 @@
               <svg class="excel-icon" id="icon-filter-author" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
               </svg>
-              <span id="badge-author"></span>
               <div id="popover-author" class="custom-popover filter-menu" onclick="event.stopPropagation()"></div>
             </th>
 
@@ -1256,19 +1325,18 @@
               <svg class="excel-icon" id="icon-filter-status" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
               </svg>
-              <span id="badge-status"></span>
               <div id="popover-status" class="custom-popover filter-menu" onclick="event.stopPropagation()"></div>
             </th>
 
             <!-- Attention : Author가 토글 (raised-hand icon). Status가 DONE이 되면 강제로 꺼지고 잠김 -->
-            <th style="width: 6%;" title="Author can raise/lower attention. Locked off once Status is DONE.">Attention</th>
+            <th style="width: 4%;" title="Author can raise/lower attention. Locked off once Status is DONE.">Attention</th>
 
             <!-- Post Date : 기능 없음 -->
             <th style="width: 7%;">Post Date</th>
 
             <!-- First Action : 소팅 -->
             <th class="clickable-th" style="width: 7%;" onclick="handleSort('first_action_at')" title="Click to sort by First Action Date">
-              First Action <span id="sort-indicator-first_action_at">▲▼</span>
+              Action <span id="sort-indicator-first_action_at">▲▼</span>
             </th>
 
             <!-- By : 엑셀 스타일 다중선택 필터 (Status를 Waiting Approval로 바꾼 user) -->
@@ -1277,18 +1345,17 @@
               <svg class="excel-icon" id="icon-filter-first-action-by" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
               </svg>
-              <span id="badge-first-action-by"></span>
               <div id="popover-first-action-by" class="custom-popover filter-menu" onclick="event.stopPropagation()"></div>
             </th>
 
             <!-- Day (action) : 소팅 -->
             <th class="clickable-th" style="width: 6%;" onclick="handleSort('day_action')" title="Click to sort by Day (Action)">
-              Day (Action) <span id="sort-indicator-day_action">▲▼</span>
+              Day(FA) <span id="sort-indicator-day_action">▲▼</span>
             </th>
 
             <!-- Day (Approval) : 소팅 -->
             <th class="clickable-th" style="width: 6%;" onclick="handleSort('day_approval')" title="Click to sort by Day (Approval)">
-              Day (Approval) <span id="sort-indicator-day_approval">▲▼</span>
+              Day(done) <span id="sort-indicator-day_approval">▲▼</span>
             </th>
 
             <!-- Approval : 기능 없음 -->
@@ -1333,6 +1400,7 @@
     let currentFilters = {
       category: [],
       issueType: [],
+      urgency: [],
       author: [],
       status: [],
       firstActionBy: [],
@@ -1384,6 +1452,10 @@
       // 2. Issue Type
       const issueOptions = ["Logic Error", "Data Correction", "Legal Status Correction", "Question", "Others"];
       buildMultiSelectMenu('popover-issue-type', 'issueType', issueOptions);
+
+      // 2b. Urgency
+      const urgencyOptions = ["Normal", "Urgent", "Very Urgent"];
+      buildMultiSelectMenu('popover-urgency', 'urgency', urgencyOptions);
 
       // 3. Status
       const statusOptions = ["PENDING", "Waiting Approval", "DONE"];
@@ -1521,61 +1593,64 @@
       });
     }
 
-    // Update Badges & Active Icon State on Header
+    // Update Active Icon State on Header (icon color/scale only — no inline text badges)
     function updateFilterBadges() {
-      // Helper for multi-select label
-      function getBadgeText(arr) {
-        if (!arr || arr.length === 0) return '';
-        if (arr.length === 1) return arr[0];
-        return `${arr.length} selected`;
-      }
-
-      // Category
-      const catBadge = document.getElementById('badge-category');
       const catIcon = document.getElementById('icon-filter-category');
-      const catText = getBadgeText(currentFilters.category);
-      if (catBadge) catBadge.innerHTML = catText ? `<span class="active-badge">${catText}</span>` : '';
       if (catIcon) catIcon.classList.toggle('active', currentFilters.category.length > 0);
 
-      // Issue Type
-      const issueBadge = document.getElementById('badge-issue-type');
       const issueIcon = document.getElementById('icon-filter-issue-type');
-      const issueText = getBadgeText(currentFilters.issueType);
-      if (issueBadge) issueBadge.innerHTML = issueText ? `<span class="active-badge">${issueText}</span>` : '';
       if (issueIcon) issueIcon.classList.toggle('active', currentFilters.issueType.length > 0);
 
-      // Author
-      const authorBadge = document.getElementById('badge-author');
+      const urgencyIcon = document.getElementById('icon-filter-urgency');
+      if (urgencyIcon) urgencyIcon.classList.toggle('active', currentFilters.urgency.length > 0);
+
       const authorIcon = document.getElementById('icon-filter-author');
-      const authorText = getBadgeText(currentFilters.author);
-      if (authorBadge) authorBadge.innerHTML = authorText ? `<span class="active-badge">${authorText}</span>` : '';
       if (authorIcon) authorIcon.classList.toggle('active', currentFilters.author.length > 0);
 
-      // Status
-      const statusBadge = document.getElementById('badge-status');
       const statusIcon = document.getElementById('icon-filter-status');
-      const statusText = getBadgeText(currentFilters.status);
-      if (statusBadge) statusBadge.innerHTML = statusText ? `<span class="active-badge">${statusText}</span>` : '';
       if (statusIcon) statusIcon.classList.toggle('active', currentFilters.status.length > 0);
 
-      // By (first_action_by)
-      const firstActionByBadge = document.getElementById('badge-first-action-by');
       const firstActionByIcon = document.getElementById('icon-filter-first-action-by');
-      const firstActionByText = getBadgeText(currentFilters.firstActionBy);
-      if (firstActionByBadge) firstActionByBadge.innerHTML = firstActionByText ? `<span class="active-badge">${firstActionByText}</span>` : '';
       if (firstActionByIcon) firstActionByIcon.classList.toggle('active', currentFilters.firstActionBy.length > 0);
 
-      // App No.
-      const appNoBadge = document.getElementById('badge-app-no');
       const appNoIcon = document.getElementById('icon-search-app-no');
-      if (appNoBadge) appNoBadge.innerHTML = currentFilters.appNo ? `<span class="active-badge">${currentFilters.appNo}</span>` : '';
       if (appNoIcon) appNoIcon.classList.toggle('active', !!currentFilters.appNo);
 
-      // Title
-      const titleBadge = document.getElementById('badge-title');
       const titleIcon = document.getElementById('icon-search-title');
-      if (titleBadge) titleBadge.innerHTML = currentFilters.title ? `<span class="active-badge">${currentFilters.title}</span>` : '';
       if (titleIcon) titleIcon.classList.toggle('active', !!currentFilters.title);
+    }
+
+    // Show "Showing X of Y" post count based on the currently filtered/sorted table
+    function updatePostCountDisplay() {
+      const el = document.getElementById('post-count-display');
+      if (!el) return;
+      const total = postsData.length;
+      const shown = currentFilteredPosts.length;
+      el.innerHTML = `Showing <span class="count-highlight">${shown}</span> of <span class="count-highlight">${total}</span>`;
+    }
+
+    // Reset all applied filters & searches back to the default (show everything)
+    function resetFiltersAndSearch() {
+      currentFilters = {
+        category: [],
+        issueType: [],
+        urgency: [],
+        author: [],
+        status: [],
+        firstActionBy: [],
+        appNo: '',
+        title: ''
+      };
+
+      // Clear the text search inputs inside the popovers, if present
+      const appNoInput = document.getElementById('popover-search-app-no');
+      if (appNoInput) appNoInput.value = '';
+      const titleInput = document.getElementById('popover-search-title');
+      if (titleInput) titleInput.value = '';
+
+      closeAllPopovers();
+      updateFilterBadges();
+      renderPostsTable();
     }
 
     // Sort Click Handler
@@ -2008,6 +2083,7 @@
       if (postsData.length === 0) {
         tbody.innerHTML = '<tr><td colspan="15" style="padding: 20px;">No posts found.</td></tr>';
         currentFilteredPosts = [];
+        updatePostCountDisplay();
         return;
       }
 
@@ -2066,6 +2142,10 @@
         if (currentFilters.issueType && currentFilters.issueType.length > 0) {
           if (!currentFilters.issueType.includes(post.issue_type || '')) return false;
         }
+        // Multi-select Urgency filter
+        if (currentFilters.urgency && currentFilters.urgency.length > 0) {
+          if (!currentFilters.urgency.includes(post.urgency || 'Normal')) return false;
+        }
         // Multi-select Author filter
         if (currentFilters.author && currentFilters.author.length > 0) {
           if (!currentFilters.author.includes(post.author || '')) return false;
@@ -2080,8 +2160,12 @@
         }
         // App No. search
         if (currentFilters.appNo && !(post.app_number || '').toLowerCase().includes(currentFilters.appNo)) return false;
-        // Title search
-        if (currentFilters.title && !(post.title || '').toLowerCase().includes(currentFilters.title)) return false;
+        // Title / Content search (matches either field)
+        if (currentFilters.title) {
+          const titleMatch = (post.title || '').toLowerCase().includes(currentFilters.title);
+          const contentMatch = htmlToPlainText(post.content || '').toLowerCase().includes(currentFilters.title);
+          if (!titleMatch && !contentMatch) return false;
+        }
         return true;
       });
 
@@ -2112,10 +2196,12 @@
       if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="15" style="padding: 24px; color: #64748b;">No matching posts found.</td></tr>';
         currentFilteredPosts = [];
+        updatePostCountDisplay();
         return;
       }
 
       currentFilteredPosts = filtered;
+      updatePostCountDisplay();
 
       // 4. Render Table Rows
       tbody.innerHTML = filtered.map(post => {
@@ -2296,10 +2382,10 @@
           'Status': post._status,
           'Attention': post.attention ? 'Yes' : '-',
           'Post Date': formatDate(post._postDate),
-          'First Action': post._firstActionDate ? formatDate(post._firstActionDate) : '-',
+          'Action': post._firstActionDate ? formatDate(post._firstActionDate) : '-',
           'By': post.first_action_by || '-',
-          'Day (Action)': post._dayActionStr,
-          'Day (Approval)': post._dayApprovalStr,
+          'Day(FA)': post._dayActionStr,
+          'Day(done)': post._dayApprovalStr,
           'Approval': approvalLabel
         };
       });
@@ -2319,10 +2405,10 @@
         { wch: 16 }, // Status
         { wch: 10 }, // Attention
         { wch: 12 }, // Post Date
-        { wch: 12 }, // First Action
+        { wch: 12 }, // Action
         { wch: 12 }, // By
-        { wch: 12 }, // Day (Action)
-        { wch: 13 }, // Day (Approval)
+        { wch: 12 }, // Day(FA)
+        { wch: 13 }, // Day(done)
         { wch: 12 }  // Approval
       ];
 
