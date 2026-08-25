@@ -284,6 +284,49 @@
       font-weight: bold;
     }
 
+    /* Downloadable attachment badge (post detail modal) */
+    .file-badge-download {
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #bae6fd;
+      transition: background-color 0.15s, transform 0.1s;
+    }
+
+    .file-badge-download:hover {
+      background: #bae6fd;
+      color: #075985;
+    }
+
+    .file-badge-download:active { transform: scale(0.97); }
+
+    .file-badge-download .download-arrow {
+      font-weight: 700;
+      font-size: 0.9rem;
+      line-height: 1;
+    }
+
+    .file-badge-download.is-loading {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .comment-file-list {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed #e2e8f0;
+    }
+
+    /* Legacy attachments recorded before Storage existed: no bytes to fetch */
+    .file-badge-missing {
+      background: #f1f5f9;
+      color: #94a3b8;
+      border: 1px dashed #cbd5e1;
+      cursor: help;
+      text-decoration: line-through;
+    }
+
     .btn-post {
       background-color: var(--primary);
       color: white;
@@ -1073,6 +1116,9 @@
               <button type="button" onclick="formatDoc('comment-content', 'insertUnorderedList')" title="Bullet List">• List</button>
               <button type="button" onclick="insertTable('comment-content')" title="Insert Table">+ Table</button>
               <button type="button" onclick="insertImage('comment-content')" title="Insert Image">+ Image</button>
+
+              <label for="comment-file-upload-input" title="Attach Files (Max 3, 5MB each)">📎 File (Max 3, 5MB)</label>
+              <input type="file" id="comment-file-upload-input" multiple style="display: none;" onchange="handleCommentFileSelect(event)" />
             </div>
 
             <!-- Contenteditable Editor Area with Image Resizing Overlay -->
@@ -1087,8 +1133,11 @@
               </div>
             </div>
 
+            <!-- Attached File Badges (comment) -->
+            <div id="comment-attached-files-container" class="file-badge-list"></div>
+
             <div class="comment-form-actions">
-              <button class="btn-add-comment" onclick="handleAddComment()">Add Comment</button>
+              <button class="btn-add-comment" id="btn-add-comment" onclick="handleAddComment()">Add Comment</button>
             </div>
           </div>
         </div>
@@ -1378,11 +1427,24 @@
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // ==========================================
+    // Storage Configuration for Post Attachments
+    // The bucket is PRIVATE: files are never reachable through a plain public
+    // URL. Downloads are served by short-lived signed URLs minted on click.
+    // ==========================================
+    const STORAGE_BUCKET = 'post-files';
+    const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hour
+    const MAX_FILES_PER_POST = 3;
+    const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+
     let currentUser = localStorage.getItem('bulletin_auth_user') || null;
     let postsData = [];
     let commentsCountMap = {}; // Maps post_id -> comment count
-    let attachedFiles = [];
+    let attachedFiles = [];        // Files queued in the post form
+    let commentAttachedFiles = []; // Files queued in the comment form
     let currentDetailPostId = null;
+    let attachmentRegistry = []; // Downloadable attachments on screen (post + comments)
+    let postAttachmentCount = 0; // Registry entries belonging to the post itself
     let currentFilteredPosts = []; // Last rendered (filtered + sorted) rows, used for Excel export
     
     // Global Cache for app_users (username -> email)
@@ -1906,23 +1968,51 @@
     initRichEditor('form-content', 'image-resizer-overlay-post');
     initRichEditor('comment-content', 'image-resizer-overlay-comment');
 
-    // File Upload Handler
-    function handleFileSelect(e) {
-      const files = Array.from(e.target.files);
-      const maxFileSize = 5 * 1024 * 1024; // 5MB
+    // ==========================================
+    // File Attachment: selection, upload to Storage, download
+    // ==========================================
 
-      for (const file of files) {
-        if (attachedFiles.length >= 3) {
-          alert('You can attach a maximum of 3 files.');
+    // Validates a picked FileList and appends it to a pending-attachment array,
+    // keeping the real File object alongside its metadata so the bytes can be
+    // uploaded on submit (previously only name/size were kept, so the file
+    // itself was silently discarded). Shared by the post and comment forms.
+    function collectPendingFiles(fileList, targetArray) {
+      for (const file of Array.from(fileList)) {
+        if (targetArray.length >= MAX_FILES_PER_POST) {
+          alert(`You can attach a maximum of ${MAX_FILES_PER_POST} files.`);
           break;
         }
-        if (file.size > maxFileSize) {
+        if (file.size > MAX_FILE_SIZE_BYTES) {
           alert(`File "${file.name}" exceeds the 5MB limit.`);
           continue;
         }
-        attachedFiles.push({ name: file.name, size: file.size });
+        if (file.size === 0) {
+          alert(`File "${file.name}" is empty and was skipped.`);
+          continue;
+        }
+        // Skip an identical file picked twice
+        if (targetArray.some(f => f.name === file.name && f.size === file.size)) {
+          continue;
+        }
+        targetArray.push({ name: file.name, size: file.size, file: file });
       }
+    }
 
+    // Renders removable badges for files queued in a compose form.
+    function renderPendingBadges(containerId, pendingList, removeFnName) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = pendingList.map((file, idx) => `
+        <span class="file-badge">
+          📎 ${escapeHtml(file.name)} (${(file.size / 1024).toFixed(1)} KB)
+          <span class="remove-btn" onclick="${removeFnName}(${idx})" title="Remove">×</span>
+        </span>
+      `).join('');
+    }
+
+    // --- Post form attachments ---
+    function handleFileSelect(e) {
+      collectPendingFiles(e.target.files, attachedFiles);
       renderAttachedFiles();
       e.target.value = '';
     }
@@ -1933,13 +2023,107 @@
     }
 
     function renderAttachedFiles() {
-      const container = document.getElementById('attached-files-container');
-      container.innerHTML = attachedFiles.map((file, idx) => `
-        <span class="file-badge">
-          📎 ${file.name} (${(file.size / 1024).toFixed(1)} KB)
-          <span class="remove-btn" onclick="removeAttachedFile(${idx})" title="Remove">×</span>
-        </span>
-      `).join('');
+      renderPendingBadges('attached-files-container', attachedFiles, 'removeAttachedFile');
+    }
+
+    // --- Comment form attachments ---
+    function handleCommentFileSelect(e) {
+      collectPendingFiles(e.target.files, commentAttachedFiles);
+      renderCommentAttachedFiles();
+      e.target.value = '';
+    }
+
+    function removeCommentAttachedFile(index) {
+      commentAttachedFiles.splice(index, 1);
+      renderCommentAttachedFiles();
+    }
+
+    function renderCommentAttachedFiles() {
+      renderPendingBadges('comment-attached-files-container', commentAttachedFiles, 'removeCommentAttachedFile');
+    }
+
+    // Storage object keys must stay ASCII-safe, so the stored key is generated
+    // (timestamp + random + extension) and the original file name — Korean and
+    // all — is preserved in the DB row and re-applied at download time.
+    function buildStoragePath(fileName) {
+      const dotIndex = fileName.lastIndexOf('.');
+      const rawExt = dotIndex > -1 ? fileName.slice(dotIndex + 1) : '';
+      const ext = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12);
+      const stamp = Date.now();
+      const rand = Math.random().toString(36).slice(2, 10);
+      return `posts/${stamp}-${rand}${ext ? '.' + ext : ''}`;
+    }
+
+    // Uploads every pending attachment and returns the metadata rows to store
+    // in posts.files / comments.files. Throws on the first failure, after
+    // cleaning up whatever was already uploaded, so a row never ends up with
+    // half its files. Shared by the post form and the comment form.
+    async function uploadAttachedFiles(pendingList) {
+      const uploaded = [];
+
+      for (const item of (pendingList || [])) {
+        if (!item.file) continue; // defensive: nothing to upload
+
+        const path = buildStoragePath(item.name);
+        const { error } = await supabaseClient
+          .storage
+          .from(STORAGE_BUCKET)
+          .upload(path, item.file, {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: item.file.type || 'application/octet-stream'
+          });
+
+        if (error) {
+          await removeUploadedObjects(uploaded.map(u => u.path));
+          throw new Error(`Upload failed for "${item.name}": ${error.message}`);
+        }
+
+        uploaded.push({ name: item.name, size: item.size, path: path });
+      }
+
+      return uploaded;
+    }
+
+    // Best-effort cleanup of orphaned objects (e.g. the DB insert failed after
+    // the files were already uploaded).
+    async function removeUploadedObjects(paths) {
+      if (!paths || paths.length === 0) return;
+      try {
+        // storage.remove() resolves with { data, error } instead of rejecting,
+        // so a policy denial has to be read off the result explicitly.
+        const { error } = await supabaseClient.storage.from(STORAGE_BUCKET).remove(paths);
+        if (error) {
+          console.warn('Failed to clean up orphaned storage objects:', error.message, paths);
+        }
+      } catch (err) {
+        console.warn('Failed to clean up orphaned storage objects:', err);
+      }
+    }
+
+    // Normalizes posts.files, which may come back as a JSON string, an array,
+    // or null depending on how the row was written.
+    function parsePostFiles(rawFiles) {
+      if (!rawFiles) return [];
+      if (Array.isArray(rawFiles)) return rawFiles;
+      if (typeof rawFiles === 'string') {
+        try {
+          const parsed = JSON.parse(rawFiles);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (err) {
+          return [];
+        }
+      }
+      return [];
+    }
+
+    function escapeHtml(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
     // ==========================================
@@ -2472,16 +2656,19 @@
       document.getElementById('modal-post-date').textContent = formatDate(post.created_at || post.date);
       document.getElementById('modal-post-content').innerHTML = post.content || '<p style="color:#94a3b8;">No content</p>';
 
-      const filesContainer = document.getElementById('modal-post-files');
-      if (post.files && Array.isArray(post.files) && post.files.length > 0) {
-        filesContainer.innerHTML = post.files.map(f => `
-          <span class="file-badge">📎 ${f.name} (${(f.size / 1024).toFixed(1)} KB)</span>
-        `).join('');
-      } else {
-        filesContainer.innerHTML = '';
-      }
+      // Clear the previous post's comments before the new ones are fetched.
+      // Otherwise stale comment badges stay clickable during the fetch while
+      // the attachment registry has already been refilled for THIS post, and a
+      // click would download the wrong file.
+      document.getElementById('modal-comments-list').innerHTML =
+        '<div style="color: #94a3b8; font-size: 0.85rem;">Loading comments...</div>';
+      document.getElementById('comments-count').textContent = '0';
+
+      renderDetailFiles(post);
 
       richEditors['comment-content'].reset();
+      commentAttachedFiles = [];
+      renderCommentAttachedFiles();
       document.getElementById('detail-modal').style.display = 'flex';
 
       await loadComments(postId);
@@ -2490,6 +2677,95 @@
     function closePostDetailModal() {
       document.getElementById('detail-modal').style.display = 'none';
       currentDetailPostId = null;
+      attachmentRegistry = [];
+      postAttachmentCount = 0;
+      commentAttachedFiles = [];
+      renderCommentAttachedFiles();
+    }
+
+    // Every downloadable attachment currently on screen (post body + comments)
+    // is registered here, so a badge only has to carry its index instead of
+    // embedding a file name and storage path into an inline onclick.
+    function buildFileBadges(rawFiles) {
+      const files = parsePostFiles(rawFiles);
+      if (files.length === 0) return '';
+
+      return files.map(f => {
+        const label = `📎 ${escapeHtml(f.name)} (${((f.size || 0) / 1024).toFixed(1)} KB)`;
+
+        // Files attached before Storage support existed have no `path`: their
+        // bytes were never saved, so show them as unavailable rather than as a
+        // link that could only fail on click.
+        if (!f.path) {
+          return `<span class="file-badge file-badge-missing"
+                        title="This file was attached before file storage was enabled, so its contents were never saved.">
+                    ${label} — unavailable
+                  </span>`;
+        }
+
+        const idx = attachmentRegistry.push(f) - 1;
+        return `<span class="file-badge file-badge-download"
+                      id="file-badge-${idx}"
+                      onclick="downloadAttachment(${idx})"
+                      title="Click to download">
+                  ${label} <span class="download-arrow">⭳</span>
+                </span>`;
+      }).join('');
+    }
+
+    // Renders the attachment badges for the open post.
+    function renderDetailFiles(post) {
+      attachmentRegistry = [];
+      document.getElementById('modal-post-files').innerHTML = buildFileBadges(post.files);
+      // Everything registered past this point belongs to the comment list and
+      // is discarded whenever the comments are re-rendered.
+      postAttachmentCount = attachmentRegistry.length;
+    }
+
+    // Mints a short-lived signed URL on demand. The bucket is private, so this
+    // link is the only way in — and it expires an hour after it is created.
+    // `download` restores the original (e.g. Korean) file name on the way out.
+    // storage-js appends `&download=<name>` and runs the whole URL through
+    // encodeURI, which leaves & # ? + % untouched — so a name like
+    // "Q&A 정리.pdf" or "100% 완성.docx" would break the query string or the
+    // percent-escaping. Those characters are swapped for '_' in the suggested
+    // save name only; the badge still shows the untouched original.
+    function buildDownloadName(fileName) {
+      return String(fileName || 'download').replace(/[&#?%+]/g, '_');
+    }
+
+    async function downloadAttachment(index) {
+      const fileInfo = attachmentRegistry[index];
+      if (!fileInfo || !fileInfo.path) return;
+
+      const badgeEl = document.getElementById(`file-badge-${index}`);
+      if (badgeEl) badgeEl.classList.add('is-loading');
+
+      try {
+        const { data, error } = await supabaseClient
+          .storage
+          .from(STORAGE_BUCKET)
+          .createSignedUrl(fileInfo.path, SIGNED_URL_TTL_SECONDS, {
+            download: buildDownloadName(fileInfo.name)
+          });
+
+        if (error) throw error;
+        if (!data || !data.signedUrl) throw new Error('No signed URL was returned.');
+
+        // Triggering the download via a temporary anchor keeps the bulletin
+        // page open instead of navigating away from it.
+        const link = document.createElement('a');
+        link.href = data.signedUrl;
+        link.rel = 'noopener';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        console.error('Attachment download error:', err);
+        alert(`Failed to download "${fileInfo.name}": ${err.message}`);
+      } finally {
+        if (badgeEl) badgeEl.classList.remove('is-loading');
+      }
     }
 
     async function loadComments(postId) {
@@ -2510,20 +2786,28 @@
         
         commentsCountMap[postId] = comments.length;
 
+        // Drop the previous render's comment attachments before re-registering,
+        // so the registry always matches exactly what is on screen.
+        attachmentRegistry.length = postAttachmentCount;
+
         if (comments.length === 0) {
           commentsListEl.innerHTML = '<div style="color: #94a3b8; font-size: 0.85rem; padding: 6px 0;">No comments yet.</div>';
           return;
         }
 
-        commentsListEl.innerHTML = comments.map(c => `
-          <div class="comment-card">
-            <div class="comment-header">
-              <span class="comment-author">${c.author || 'Anonymous'}</span>
-              <span class="comment-date">${formatDate(c.created_at)}</span>
+        commentsListEl.innerHTML = comments.map(c => {
+          const fileBadges = buildFileBadges(c.files);
+          return `
+            <div class="comment-card">
+              <div class="comment-header">
+                <span class="comment-author">${escapeHtml(c.author || 'Anonymous')}</span>
+                <span class="comment-date">${formatDate(c.created_at)}</span>
+              </div>
+              <div class="comment-text">${c.text || c.content || ''}</div>
+              ${fileBadges ? `<div class="file-badge-list comment-file-list">${fileBadges}</div>` : ''}
             </div>
-            <div class="comment-text">${c.text || c.content || ''}</div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
 
       } catch (err) {
         console.error('Comments fetch error:', err);
@@ -2548,25 +2832,56 @@
         return;
       }
 
-      const newComment = {
-        post_id: currentDetailPostId,
-        author: currentUser,
-        text: contentHtml
-      };
+      const submitBtn = document.getElementById('btn-add-comment');
+      const originalBtnLabel = submitBtn ? submitBtn.textContent : 'Add Comment';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = commentAttachedFiles.length > 0 ? 'Uploading...' : 'Posting...';
+      }
+
+      let uploadedFiles = [];
+      let rowInserted = false;
 
       try {
+        // Upload the bytes first; if this fails no comment row is created.
+        uploadedFiles = await uploadAttachedFiles(commentAttachedFiles);
+
+        if (submitBtn) submitBtn.textContent = 'Posting...';
+
+        const newComment = {
+          post_id: currentDetailPostId,
+          author: currentUser,
+          text: contentHtml,
+          files: uploadedFiles
+        };
+
         const { error } = await supabaseClient
           .from('comments')
           .insert([newComment]);
 
         if (error) throw error;
+        rowInserted = true;
 
         richEditors['comment-content'].reset();
+        commentAttachedFiles = [];
+        renderCommentAttachedFiles();
+
         await loadComments(currentDetailPostId);
-        
+
         renderPostsTable();
       } catch (err) {
+        // Only clean up when the row was never created. If the insert already
+        // succeeded and something later threw, the files are referenced by a
+        // live comment and must be left alone.
+        if (!rowInserted) {
+          await removeUploadedObjects(uploadedFiles.map(f => f.path));
+        }
         alert('Failed to add comment: ' + err.message);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalBtnLabel;
+        }
       }
     }
 
@@ -2727,25 +3042,45 @@
 
       const appNoInput = document.getElementById('form-app-no').value.trim();
 
-      const newPost = {
-        category: document.getElementById('form-category').value,
-        issue_type: document.getElementById('form-issue-type').value,
-        urgency: document.getElementById('form-urgency').value,
-        author: currentUser,
-        title: document.getElementById('form-title').value.trim(),
-        content: contentHtml,
-        app_number: appNoInput || null,
-        status: 'PENDING',
-        reask_status: 'EMPTY',
-        files: attachedFiles
-      };
+      // Lock the submit button while files are uploading so a slow upload
+      // can't be double-submitted into duplicate posts.
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalBtnLabel = submitBtn ? submitBtn.textContent : 'POST';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = attachedFiles.length > 0 ? 'Uploading...' : 'Posting...';
+      }
+
+      let uploadedFiles = [];
+      let rowInserted = false;
 
       try {
+        // 1. Push the actual bytes to Storage first — if this fails, no post
+        //    is created and nothing is left behind.
+        uploadedFiles = await uploadAttachedFiles(attachedFiles);
+
+        if (submitBtn) submitBtn.textContent = 'Posting...';
+
+        const newPost = {
+          category: document.getElementById('form-category').value,
+          issue_type: document.getElementById('form-issue-type').value,
+          urgency: document.getElementById('form-urgency').value,
+          author: currentUser,
+          title: document.getElementById('form-title').value.trim(),
+          content: contentHtml,
+          app_number: appNoInput || null,
+          status: 'PENDING',
+          reask_status: 'EMPTY',
+          files: uploadedFiles
+        };
+
+        // 2. Store only the metadata + storage key in the row.
         const { error } = await supabaseClient
           .from('posts')
           .insert([newPost]);
 
         if (error) throw error;
+        rowInserted = true;
 
         document.getElementById('form-title').value = '';
         document.getElementById('form-app-no').value = '';
@@ -2755,7 +3090,17 @@
 
         await loadPosts();
       } catch (err) {
+        // Only clean up when the row was never created. If the insert already
+        // succeeded and a later step threw, the files belong to a live post.
+        if (!rowInserted) {
+          await removeUploadedObjects(uploadedFiles.map(f => f.path));
+        }
         alert('Failed to create post: ' + err.message);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalBtnLabel;
+        }
       }
     }
 
