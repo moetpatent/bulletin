@@ -464,36 +464,64 @@
       cursor: pointer;
     }
 
+    .pagination button:hover:not(:disabled):not(.active) {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
     .pagination button.active {
       background: #2563eb;
       color: #fff;
       font-weight: bold;
+      border-color: #2563eb;
+    }
+
+    .pagination button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .pagination .page-total {
+      color: #94a3b8;
+      font-size: 0.8rem;
+      margin-left: 2px;
     }
 
     /* Table Section */
+    /* The table body scrolls inside this box instead of stretching the page,
+       so the post form above and the pagination bar stay reachable. */
     .table-container {
       width: 100%;
       border: 1px solid var(--border);
       border-radius: 6px;
       position: relative;
+      max-height: 60vh;
+      min-height: 220px;
+      overflow: auto;
     }
 
     table {
       width: 100%;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0;
       font-size: 0.7rem;
       text-align: center;
     }
 
+    /* Header stays pinned while the rows scroll under it. `border-collapse:
+       separate` above is required — with `collapse`, borders on a sticky
+       header detach and scroll away. */
     thead th {
       background-color: #f1f5f9;
       color: #334155;
       padding: 11px 8px;
       font-weight: 600;
-      border-bottom: 2px solid var(--border);
+      box-shadow: inset 0 -2px 0 var(--border);
       user-select: none;
       white-space: nowrap;
-      position: relative;
+      position: sticky;
+      top: 0;
+      z-index: 5;
     }
 
     .clickable-th {
@@ -550,12 +578,14 @@
       letter-spacing: -0.5px;
     }
 
-    /* Floating Dropdown & Search Popovers */
+    /* Floating Dropdown & Search Popovers.
+       Positioned `fixed` and placed by JS (see positionPopover): the table is
+       now a scrolling box, and an absolutely positioned popover inside it
+       would be clipped by that box instead of floating over the page. */
     .custom-popover {
-      position: absolute;
-      top: 100%;
-      left: 50%;
-      transform: translateX(-50%);
+      position: fixed;
+      top: 0;
+      left: 0;
       background: #ffffff;
       border: 1px solid #cbd5e1;
       border-radius: 6px;
@@ -563,7 +593,6 @@
       z-index: 999;
       display: none;
       text-align: left;
-      margin-top: 4px;
     }
 
     /* Multi-select filter menu */
@@ -1271,14 +1300,7 @@
       </div>
 
       <div class="pagination-export-group">
-        <div class="pagination">
-          <span>Page</span>
-          <button>|&lt;</button>
-          <button>&lt;</button>
-          <button class="active">1</button>
-          <button>&gt;</button>
-          <button>&gt;|</button>
-        </div>
+        <div class="pagination" id="pagination-bar"></div>
 
         <button class="btn-export-excel-icon" onclick="exportPostsToExcel()" title="Export the currently filtered/sorted table to an Excel file">
           <svg viewBox="0 0 32 32" width="29" height="29">
@@ -1458,6 +1480,11 @@
       order: 'desc' // 'asc' | 'desc'
     };
 
+    // Pagination: the table renders one page of rows at a time; the rest of
+    // the filtered set stays in currentFilteredPosts (used by Excel export).
+    const ROWS_PER_PAGE = 50;
+    let currentPage = 1;
+
     // Filters are now Arrays for Multi-Select support!
     let currentFilters = {
       category: [],
@@ -1488,6 +1515,7 @@
       if (!isAlreadyOpen) {
         buildAllDropdowns(); // Refresh options & checkboxes
         popoverEl.style.display = 'block';
+        positionPopover(popoverEl);
 
         // Auto focus search input if search popover
         const searchInput = popoverEl.querySelector('input[type="text"]');
@@ -1500,10 +1528,46 @@
       }
     }
 
+    // Places a fixed-position popover just under its header cell, centered on
+    // it but kept inside the viewport, and flipped above when there is no room
+    // below. Must run while the popover is already displayed so it has a size.
+    function positionPopover(popoverEl) {
+      const anchorEl = popoverEl.parentElement; // the <th> it belongs to
+      if (!anchorEl) return;
+
+      const anchorRect = anchorEl.getBoundingClientRect();
+      const popWidth = popoverEl.offsetWidth;
+      const popHeight = popoverEl.offsetHeight;
+      const gap = 4;
+      const margin = 8;
+
+      let left = anchorRect.left + (anchorRect.width / 2) - (popWidth / 2);
+      left = Math.max(margin, Math.min(left, window.innerWidth - popWidth - margin));
+
+      let top = anchorRect.bottom + gap;
+      if (top + popHeight > window.innerHeight - margin) {
+        const flipped = anchorRect.top - popHeight - gap;
+        top = flipped >= margin ? flipped : Math.max(margin, window.innerHeight - popHeight - margin);
+      }
+
+      popoverEl.style.left = `${Math.round(left)}px`;
+      popoverEl.style.top = `${Math.round(top)}px`;
+    }
+
     // Close when clicking anywhere outside
     document.addEventListener('click', (e) => {
       closeAllPopovers();
     });
+
+    // A fixed popover would otherwise stay put while its header cell moves.
+    // Scrolling *inside* a popover (the filter list) must not close it, so
+    // those events are ignored — capture phase sees them all.
+    window.addEventListener('resize', closeAllPopovers);
+    window.addEventListener('scroll', (e) => {
+      const target = e.target;
+      if (target && target.closest && target.closest('.custom-popover')) return;
+      closeAllPopovers();
+    }, true);
 
     // Build Dropdown Menus with Multi-Select Checkboxes
     function buildAllDropdowns() {
@@ -1599,6 +1663,7 @@
       }
 
       closeAllPopovers();
+      resetToFirstPage();
       updateFilterBadges();
       renderPostsTable();
     }
@@ -1606,6 +1671,7 @@
     function clearMultiFilter(filterKey) {
       currentFilters[filterKey] = [];
       closeAllPopovers();
+      resetToFirstPage();
       updateFilterBadges();
       renderPostsTable();
     }
@@ -1620,6 +1686,7 @@
         currentFilters.title = val;
       }
       closeAllPopovers();
+      resetToFirstPage();
       updateFilterBadges();
       renderPostsTable();
     }
@@ -1633,6 +1700,7 @@
         currentFilters.title = '';
       }
       closeAllPopovers();
+      resetToFirstPage();
       updateFilterBadges();
       renderPostsTable();
     }
@@ -1682,13 +1750,94 @@
       if (titleIcon) titleIcon.classList.toggle('active', !!currentFilters.title);
     }
 
-    // Show "Showing X of Y" post count based on the currently filtered/sorted table
+    // Shows which slice of the filtered set is currently on screen, e.g.
+    // "Showing 51-100 of 320 (500 total)".
     function updatePostCountDisplay() {
       const el = document.getElementById('post-count-display');
       if (!el) return;
+
       const total = postsData.length;
-      const shown = currentFilteredPosts.length;
-      el.innerHTML = `Showing <span class="count-highlight">${shown}</span> of <span class="count-highlight">${total}</span>`;
+      const matched = currentFilteredPosts.length;
+
+      if (matched === 0) {
+        el.innerHTML = `Showing <span class="count-highlight">0</span> of <span class="count-highlight">${total}</span>`;
+        return;
+      }
+
+      // Everything fits on one page: keep the original "X of Y" wording.
+      if (matched <= ROWS_PER_PAGE) {
+        el.innerHTML = `Showing <span class="count-highlight">${matched}</span> of <span class="count-highlight">${total}</span>`;
+        return;
+      }
+
+      const from = (currentPage - 1) * ROWS_PER_PAGE + 1;
+      const to = Math.min(currentPage * ROWS_PER_PAGE, matched);
+
+      let html = `Showing <span class="count-highlight">${from}-${to}</span> of <span class="count-highlight">${matched}</span>`;
+      if (matched !== total) {
+        html += ` <span style="color:#94a3b8;">(${total} total)</span>`;
+      }
+      el.innerHTML = html;
+    }
+
+    // ==========================================
+    // Pagination
+    // ==========================================
+    function renderPagination(matchedCount) {
+      const bar = document.getElementById('pagination-bar');
+      if (!bar) return;
+
+      const totalPages = Math.max(1, Math.ceil(matchedCount / ROWS_PER_PAGE));
+
+      // A single page of results needs no controls.
+      if (matchedCount === 0 || totalPages <= 1) {
+        bar.innerHTML = '';
+        return;
+      }
+
+      const isFirst = currentPage <= 1;
+      const isLast = currentPage >= totalPages;
+
+      // Show a sliding window of at most 7 page numbers around the current one.
+      const windowSize = 7;
+      let windowStart = Math.max(1, currentPage - Math.floor(windowSize / 2));
+      let windowEnd = Math.min(totalPages, windowStart + windowSize - 1);
+      windowStart = Math.max(1, windowEnd - windowSize + 1);
+
+      let html = '<span>Page</span>';
+      html += `<button type="button" onclick="goToPage(1)" ${isFirst ? 'disabled' : ''} title="First page">|&lt;</button>`;
+      html += `<button type="button" onclick="goToPage(${currentPage - 1})" ${isFirst ? 'disabled' : ''} title="Previous page">&lt;</button>`;
+
+      for (let p = windowStart; p <= windowEnd; p++) {
+        html += `<button type="button" class="${p === currentPage ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`;
+      }
+
+      html += `<button type="button" onclick="goToPage(${currentPage + 1})" ${isLast ? 'disabled' : ''} title="Next page">&gt;</button>`;
+      html += `<button type="button" onclick="goToPage(${totalPages})" ${isLast ? 'disabled' : ''} title="Last page">&gt;|</button>`;
+      html += `<span class="page-total">/ ${totalPages}</span>`;
+
+      bar.innerHTML = html;
+    }
+
+    function goToPage(page) {
+      const totalPages = Math.max(1, Math.ceil(currentFilteredPosts.length / ROWS_PER_PAGE));
+      const target = Math.max(1, Math.min(page, totalPages));
+      if (target === currentPage) return;
+
+      currentPage = target;
+      closeAllPopovers();
+      renderPostsTable();
+
+      // Start the new page at the top of the list rather than wherever the
+      // previous page happened to be scrolled to.
+      const container = document.querySelector('.table-container');
+      if (container) container.scrollTop = 0;
+    }
+
+    // Any change to what is being shown puts the view back on page 1 —
+    // otherwise a filter applied while on page 5 lands on a blank-looking page.
+    function resetToFirstPage() {
+      currentPage = 1;
     }
 
     // Reset all applied filters & searches back to the default (show everything)
@@ -1711,6 +1860,7 @@
       if (titleInput) titleInput.value = '';
 
       closeAllPopovers();
+      resetToFirstPage();
       updateFilterBadges();
       renderPostsTable();
     }
@@ -1724,6 +1874,7 @@
         currentSort.column = column;
         currentSort.order = (column === 'id') ? 'desc' : 'asc';
       }
+      resetToFirstPage();
       updateSortIndicators();
       renderPostsTable();
     }
@@ -2380,15 +2531,29 @@
       if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="15" style="padding: 24px; color: #64748b;">No matching posts found.</td></tr>';
         currentFilteredPosts = [];
+        currentPage = 1;
+        renderPagination(0);
         updatePostCountDisplay();
         return;
       }
 
       currentFilteredPosts = filtered;
+
+      // 4. Take the current page's slice. The page index is clamped here so a
+      //    filter that shrinks the result set can't strand the view on an
+      //    empty page.
+      const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
+      const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+      const pageRows = filtered.slice(startIndex, startIndex + ROWS_PER_PAGE);
+
+      renderPagination(filtered.length);
       updatePostCountDisplay();
 
-      // 4. Render Table Rows
-      tbody.innerHTML = filtered.map(post => {
+      // 5. Render Table Rows
+      tbody.innerHTML = pageRows.map(post => {
         const postDate = post._postDate;
         const status = post._status;
         const appNo = post.app_number || '-';
