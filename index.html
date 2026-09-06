@@ -1056,6 +1056,103 @@
       white-space: nowrap;
     }
     .btn-add-comment:hover { background-color: var(--primary-hover); }
+
+    /* ===== Sticky top: title + dashboard ===== */
+    .sticky-top {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--card-bg);
+      margin: -24px -28px 18px;
+      padding: 16px 28px 12px;
+      border-bottom: 1px solid var(--border);
+      border-radius: 8px 8px 0 0;
+    }
+    .sticky-top .header-bar { margin-bottom: 12px; }
+
+    .btn-new-post {
+      background-color: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 7px 16px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-new-post:hover { background-color: var(--primary-hover); }
+
+    .dashboard { display: flex; flex-direction: column; gap: 10px; }
+    .dash-row { display: grid; gap: 10px; }
+    .dash-row-1 { grid-template-columns: 3fr 1fr; }
+    .dash-row-2 { grid-template-columns: 1.8fr 1.8fr 1.1fr 1.8fr 1.1fr 0.6fr 0.9fr 1.1fr; }
+    .dash-row > .dash-card { min-width: 0; }
+    .dash-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      border-radius: 6px;
+      padding: 8px 12px;
+      min-height: 0;
+    }
+    .dash-card .dash-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .dash-card .dash-value {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.3;
+    }
+    .dash-card .dash-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .dash-card.c-pending  { border-left-color: #e34948; }
+    .dash-card.c-waiting  { border-left-color: #eda100; }
+    .dash-card.c-done     { border-left-color: #008300; }
+    .dash-card.c-reask    { border-left-color: #dc2626; }
+    .dash-card.c-review   { border-left-color: #2a78d6; }
+    .dash-value.dash-value-red { color: #dc2626; }
+    .dash-value .dash-max { margin-left: 8px; color: var(--text-muted); font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
+    .dash-card.c-days     { border-left-color: #64748b; }
+    .dash-value .dash-red { display: inline; margin-left: 8px; color: #dc2626; font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
+    .dash-value .dash-red-num { font-size: calc(0.8rem + 2pt); }
+    .dash-value .dash-note { display: inline; margin-left: 8px; color: #0f172a; font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
+    .dash-value .dash-note .dash-red-num { color: #dc2626; }
+    .dash-value .dash-max-red { color: #dc2626; }
+    .dash-status .pie-block { margin-top: 4px; }
+
+    .dash-card.dash-wide, .dash-card.dash-status { display: flex; flex-direction: column; }
+    /* titles share row 1, pies share row 2 (centered on the same line) */
+    .pie-group { display: grid; grid-auto-flow: column; grid-template-rows: auto 1fr; grid-auto-columns: max-content; column-gap: 35px; row-gap: 3px; margin-top: 4px; flex: 1; align-items: center; }
+    .pie-group .pie-block { display: contents; }
+    .pie-group .pie-title { align-self: start; }
+    .dash-status .pie-block { flex: 1; justify-content: center; }
+    .pie-pct { color: var(--text-muted); }
+    .pie-block { display: flex; flex-direction: column; gap: 3px; }
+    .pie-title { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); }
+    .pie-row { display: flex; align-items: center; gap: 8px; }
+    .pie-row svg { flex-shrink: 0; }
+    .pie-legend { display: flex; flex-direction: column; gap: 1px; }
+    .pie-legend-item { font-size: 0.72rem; color: #334155; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+    .pie-legend-item b { color: #0f172a; }
+    .pie-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Day(FA) / Day(done) table cells */
+    .day-cell { font-weight: 700; }
+    .day-cell.day-orange { color: #ea580c; }
+    .day-cell.day-red { color: #dc2626; }
+
+    /* New Post modal reuses the detail modal shell, just wider */
+    .new-post-box { max-width: 1200px; }
+    .new-post-box .form-row { grid-template-columns: 1fr 1fr 1fr 1fr; }
   </style>
 </head>
 <body>
@@ -1175,19 +1272,15 @@
   </div>
 
   <!-- Main Container -->
-  <div class="container">
-    <!-- Top Header -->
-    <div class="header-bar">
-      <div class="main-title-header">Patent IT Bulletin Board</div>
-      <div class="user-profile-bar" id="user-bar">
-        <span>Logged in as: <strong class="user-badge" id="current-user-name">-</strong></span>
-        <button class="btn-logout" onclick="handleLogout()">Logout</button>
+  <!-- New Post Modal -->
+  <div id="new-post-modal" class="detail-modal-overlay" style="display: none;">
+    <div class="detail-box new-post-box">
+      <div class="detail-header">
+        <h3>Write a Post</h3>
+        <button class="btn-close-modal" onclick="closeNewPostModal()">×</button>
       </div>
-    </div>
-
-    <!-- 1. Post Creation Form -->
-    <div class="form-section clearfix">
-      <form id="post-form" onsubmit="handleCreatePost(event)">
+      <div class="detail-body">
+        <form id="post-form" class="clearfix" onsubmit="handleCreatePost(event)">
         <div class="form-row">
           <div class="form-group">
             <label>Select Category *</label>
@@ -1284,7 +1377,25 @@
         </div>
 
         <button type="submit" class="btn-post">POST</button>
-      </form>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Sticky top: title + dashboard -->
+    <div class="sticky-top">
+      <div class="header-bar">
+        <div class="main-title-header">Patent IT Bulletin Board</div>
+        <div class="user-profile-bar" id="user-bar">
+          <button class="btn-new-post" onclick="openNewPostModal()">+ WRITE A POST</button>
+          <span>Logged in as: <strong class="user-badge" id="current-user-name">-</strong></span>
+          <button class="btn-logout" onclick="handleLogout()">Logout</button>
+        </div>
+      </div>
+
+      <!-- Dashboard (always computed from ALL posts, ignores filters) -->
+      <div class="dashboard" id="dashboard"></div>
     </div>
 
     <!-- 2. Controls Bar (Mail & Pagination) -->
@@ -1429,8 +1540,14 @@
               Day(done) <span id="sort-indicator-day_approval">▲▼</span>
             </th>
 
-            <!-- Approval : 기능 없음 -->
-            <th style="width: 8%;">Approval</th>
+            <!-- Approval : 다중선택 필터 -->
+            <th class="clickable-th" style="width: 8%;" onclick="openPopover(event, 'popover-approval')" title="Click to filter Approval">
+              Approval
+              <svg class="excel-icon" id="icon-filter-approval" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
+              </svg>
+              <div id="popover-approval" class="custom-popover filter-menu" onclick="event.stopPropagation()"></div>
+            </th>
           </tr>
         </thead>
         <tbody id="posts-tbody">
@@ -1493,6 +1610,7 @@
       author: [],
       status: [],
       firstActionBy: [],
+      approval: [],
       appNo: '',
       title: ''
     };
@@ -1586,6 +1704,12 @@
       // 3. Status
       const statusOptions = ["PENDING", "Waiting Approval", "DONE"];
       buildMultiSelectMenu('popover-status', 'status', statusOptions);
+
+      // Approval labels as displayed in the table ('-', 'Plz Review', 'Re-ask', 'Good', ...)
+      const baseApproval = ['-', 'Plz Review', 'Re-ask', 'Good'];
+      const nowIsoA = new Date().toISOString();
+      const extraApproval = Array.from(new Set(postsData.map(p => derivePostMetrics(p, nowIsoA)._approvalLabel))).filter(l => !baseApproval.includes(l)).sort();
+      buildMultiSelectMenu('popover-approval', 'approval', baseApproval.concat(extraApproval));
 
       // 4. Author
       const uniqueAuthors = Array.from(new Set(postsData.map(p => p.author).filter(Boolean))).sort();
@@ -1743,6 +1867,9 @@
       const firstActionByIcon = document.getElementById('icon-filter-first-action-by');
       if (firstActionByIcon) firstActionByIcon.classList.toggle('active', currentFilters.firstActionBy.length > 0);
 
+      const approvalIcon = document.getElementById('icon-filter-approval');
+      if (approvalIcon) approvalIcon.classList.toggle('active', (currentFilters.approval || []).length > 0);
+
       const appNoIcon = document.getElementById('icon-search-app-no');
       if (appNoIcon) appNoIcon.classList.toggle('active', !!currentFilters.appNo);
 
@@ -1849,6 +1976,7 @@
         author: [],
         status: [],
         firstActionBy: [],
+        approval: [],
         appNo: '',
         title: ''
       };
@@ -2400,6 +2528,7 @@
           console.warn('Failed to load comment counts:', cErr);
         }
 
+        renderDashboard();
         buildAllDropdowns();
         updateSortIndicators();
         updateFilterBadges();
@@ -2413,6 +2542,71 @@
     }
 
     // Render Table with Filtering, Searching, and Sorting
+    // Derived per-post metrics (shared by the table and the dashboard)
+    function derivePostMetrics(post, todayIso) {
+      const postDate = post.created_at || post.date;
+      const status = (post.status || 'PENDING').trim();
+
+      let firstActionDate = post.first_action_at;
+      if (!firstActionDate && status === 'DONE') {
+        firstActionDate = post.action_completed_at || postDate;
+      }
+
+      let dayActionVal = null;
+      let dayActionStr = '-';
+      if (firstActionDate) {
+        const diff = getDiffDays(postDate, firstActionDate);
+        if (diff !== '-') { dayActionVal = diff; dayActionStr = diff; }
+      } else {
+        const diff = getDiffDays(postDate, todayIso);
+        if (diff !== '-') { dayActionVal = diff; dayActionStr = diff; }
+      }
+
+      let dayApprovalVal = null;
+      let dayApprovalStr = '-';
+      if (post.day_approval !== null && post.day_approval !== undefined && post.day_approval !== '') {
+        dayApprovalVal = Number(post.day_approval);
+        dayApprovalStr = post.day_approval;
+      } else if (status === 'DONE') {
+        const completedDate = post.approval_completed_at || post.action_completed_at || post.completed_at || firstActionDate || postDate;
+        const diff = getDiffDays(postDate, completedDate);
+        if (diff !== '-') { dayApprovalVal = diff; dayApprovalStr = diff; }
+      }
+
+      // Approval label exactly as the table badge shows it
+      const rawApprovalVal = post.reask_status;
+      let approvalLabel = '-';
+      if (status === 'Waiting Approval') {
+        approvalLabel = (rawApprovalVal === 'Re-ask') ? 'Re-ask' : 'Plz Review';
+      } else if (status === 'DONE') {
+        approvalLabel = (rawApprovalVal && rawApprovalVal !== 'EMPTY') ? rawApprovalVal : 'Good';
+      }
+
+      return {
+        ...post,
+        _postDate: postDate,
+        _status: status,
+        _firstActionDate: firstActionDate,
+        _dayActionVal: dayActionVal,
+        _dayActionStr: dayActionStr,
+        _dayApprovalVal: dayApprovalVal,
+        _dayApprovalStr: dayApprovalStr,
+        _approvalLabel: approvalLabel
+      };
+    }
+
+    // Day cell: bold; > warn days = orange, > alert days = red
+    function dayCellHtml(val, str, warnDays, alertDays) {
+      if (val === null || val === undefined || str === '-') return '-';
+      const n = Number(val);
+      let cls = 'day-cell';
+      if (Number.isFinite(n)) {
+        if (n > alertDays) cls += ' day-red';
+        else if (n > warnDays) cls += ' day-orange';
+      }
+      return `<span class="${cls}">${str}</span>`;
+    }
+
     function renderPostsTable() {
       const tbody = document.getElementById('posts-tbody');
       if (postsData.length === 0) {
@@ -2425,47 +2619,7 @@
       const todayIso = new Date().toISOString();
 
       // 1. Process Derived Properties
-      let processedList = postsData.map(post => {
-        const postDate = post.created_at || post.date;
-        const status = (post.status || 'PENDING').trim();
-
-        let firstActionDate = post.first_action_at;
-        if (!firstActionDate && status === 'DONE') {
-          firstActionDate = post.action_completed_at || postDate;
-        }
-
-        let dayActionVal = null;
-        let dayActionStr = '-';
-        if (firstActionDate) {
-          const diff = getDiffDays(postDate, firstActionDate);
-          if (diff !== '-') { dayActionVal = diff; dayActionStr = diff; }
-        } else {
-          const diff = getDiffDays(postDate, todayIso);
-          if (diff !== '-') { dayActionVal = diff; dayActionStr = diff; }
-        }
-
-        let dayApprovalVal = null;
-        let dayApprovalStr = '-';
-        if (post.day_approval !== null && post.day_approval !== undefined && post.day_approval !== '') {
-          dayApprovalVal = Number(post.day_approval);
-          dayApprovalStr = post.day_approval;
-        } else if (status === 'DONE') {
-          const completedDate = post.approval_completed_at || post.action_completed_at || post.completed_at || firstActionDate || postDate;
-          const diff = getDiffDays(postDate, completedDate);
-          if (diff !== '-') { dayApprovalVal = diff; dayApprovalStr = diff; }
-        }
-
-        return {
-          ...post,
-          _postDate: postDate,
-          _status: status,
-          _firstActionDate: firstActionDate,
-          _dayActionVal: dayActionVal,
-          _dayActionStr: dayActionStr,
-          _dayApprovalVal: dayApprovalVal,
-          _dayApprovalStr: dayApprovalStr
-        };
-      });
+      let processedList = postsData.map(post => derivePostMetrics(post, todayIso));
 
       // 2. Filter & Search with Multi-select Arrays
       let filtered = processedList.filter(post => {
@@ -2492,6 +2646,10 @@
         // Multi-select By (first_action_by) filter
         if (currentFilters.firstActionBy && currentFilters.firstActionBy.length > 0) {
           if (!currentFilters.firstActionBy.includes(post.first_action_by || '')) return false;
+        }
+        // Multi-select Approval filter (matches the label shown in the table)
+        if (currentFilters.approval && currentFilters.approval.length > 0) {
+          if (!currentFilters.approval.includes(post._approvalLabel)) return false;
         }
         // App No. search
         if (currentFilters.appNo && !(post.app_number || '').toLowerCase().includes(currentFilters.appNo)) return false;
@@ -2608,7 +2766,9 @@
         }
 
         const urgencyClass = `urgency-${(post.urgency || 'Normal').replace(/\s+/g, '-')}`;
-        const safeTitle = (post.title || '').replace(/'/g, "\\'");
+        // Title goes into a JS string inside an HTML attribute: escape for JS first, then for HTML
+        const safeTitle = escapeHtml((post.title || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+        const safeAuthor = escapeHtml(post.author || '');
 
         // Attention Toggle (raised-hand icon)
         // - Only the post's author can toggle it on/off.
@@ -2639,12 +2799,12 @@
             <td style="font-weight: 500;">${appNo}</td>
             <td>${post.issue_type || '-'}</td>
             <td><span class="urgency-badge ${urgencyClass}">${post.urgency || 'Normal'}</span></td>
-            <td class="title-cell" title="${post.title || ''}">
-              <a class="title-link" onclick="openPostDetailModal(${post.id})">${post.title || ''}</a>${commentBadgeHtml}
+            <td class="title-cell" title="${escapeHtml(post.title || '')}">
+              <a class="title-link" onclick="openPostDetailModal(${post.id})">${escapeHtml(post.title || '')}</a>${commentBadgeHtml}
             </td>
             <td>
-              <a class="author-link" onclick="sendMailToAuthor('${post.author}', ${post.id}, '${safeTitle}')" title="Click to send email to ${post.author || 'Author'} via Outlook">
-                ${post.author || '-'}
+              <a class="author-link" onclick="sendMailToAuthor('${safeAuthor}', ${post.id}, '${safeTitle}')" title="Click to send email to ${safeAuthor || 'Author'} via Outlook">
+                ${safeAuthor || '-'}
               </a>
             </td>
             <td>${statusBtnHtml}</td>
@@ -2652,8 +2812,8 @@
             <td>${formatDate(postDate)}</td>
             <td>${firstActionDate ? formatDate(firstActionDate) : '-'}</td>
             <td>${post.first_action_by || '-'}</td>
-            <td>${dayAction}</td>
-            <td>${dayApproval}</td>
+            <td>${dayCellHtml(post._dayActionVal, dayAction, 3, 7)}</td>
+            <td>${dayCellHtml(post._dayApprovalVal, dayApproval, 7, 10)}</td>
             <td>${approvalHtml}</td>
           </tr>
         `;
@@ -3190,6 +3350,188 @@
     }
 
     // Post Creation (POST)
+    // ===== Dashboard (uses ALL posts, not the filtered view) =====
+    // Validated categorical palette (fixed slot order, never cycled)
+    const PIE_CAT = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
+    const PIE_STATUS  = { 'PENDING': '#e34948', 'Waiting Approval': '#eda100', 'DONE': '#008300' };
+    const PIE_URGENCY = { 'Normal': '#2a78d6', 'Urgent': '#eda100', 'Very Urgent': '#e34948' };
+
+    // slices: [{label, value, color}] -> small SVG pie (2px white gap between slices)
+    function pieSvg(slices, size) {
+      const total = slices.reduce((a, s) => a + s.value, 0);
+      const r = size / 2, cx = r, cy = r;
+      if (total === 0) {
+        return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${cx}" cy="${cy}" r="${r - 1}" fill="#e2e8f0"/></svg>`;
+      }
+      const nonZero = slices.filter(s => s.value > 0);
+      if (nonZero.length === 1) {
+        return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${cx}" cy="${cy}" r="${r - 1}" fill="${nonZero[0].color}"><title>${nonZero[0].label}: ${nonZero[0].value}</title></circle></svg>`;
+      }
+      let angle = -Math.PI / 2;
+      let paths = '';
+      nonZero.forEach(sl => {
+        const a = (sl.value / total) * Math.PI * 2;
+        const x1 = cx + r * Math.cos(angle), y1 = cy + r * Math.sin(angle);
+        const x2 = cx + r * Math.cos(angle + a), y2 = cy + r * Math.sin(angle + a);
+        const large = a > Math.PI ? 1 : 0;
+        paths += `<path d="M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${large} 1 ${x2.toFixed(2)},${y2.toFixed(2)} Z" fill="${sl.color}" stroke="#ffffff" stroke-width="2"><title>${sl.label}: ${sl.value} (${Math.round(sl.value / total * 100)}%)</title></path>`;
+        angle += a;
+      });
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${paths}</svg>`;
+    }
+
+    function pieWithLegend(title, slices, size) {
+      const total = slices.reduce((a, x) => a + x.value, 0);
+      const legend = slices.map(sl => {
+        const pctStr = total ? Math.round(sl.value / total * 100) + '%' : '0%';
+        return `<div class="pie-legend-item"><span class="pie-dot" style="background:${sl.color}"></span>${sl.label} <b>${sl.value}</b> <span class="pie-pct">(${pctStr})</span></div>`;
+      }).join('');
+      return `
+        <div class="pie-block">
+          <div class="pie-title">${title}</div>
+          <div class="pie-row">${pieSvg(slices, size)}<div class="pie-legend">${legend}</div></div>
+        </div>`;
+    }
+
+    function renderDashboard() {
+      const el = document.getElementById('dashboard');
+      if (!el) return;
+
+      const todayIso = new Date().toISOString();
+      const rows = postsData.map(p => derivePostMetrics(p, todayIso));
+      const total = rows.length;
+
+      const byStatus = (st) => rows.filter(p => p._status === st);
+      const pendingRows = byStatus('PENDING');
+      const waitingRows = byStatus('Waiting Approval');
+      const doneRows    = byStatus('DONE');
+
+      const countBy = (list, key, order) => order.map((k, i) => ({
+        label: k, value: list.filter(p => (p[key] || '') === k).length, color: PIE_CAT[i]
+      }));
+      const catSlices   = countBy(rows, 'category',   ['Patent', 'Utility model', 'Design', 'Other Services']);
+      const issueSlices = countBy(rows, 'issue_type', ['Logic Error', 'Data Correction', 'Legal Status Correction', 'Question', 'Others']);
+      const urgSlices   = ['Normal', 'Urgent', 'Very Urgent'].map(k => ({
+        label: k, value: rows.filter(p => p.urgency === k).length, color: PIE_URGENCY[k]
+      }));
+      const statusSlices = [
+        { label: 'Pending',          value: pendingRows.length, color: PIE_STATUS['PENDING'] },
+        { label: 'Waiting Approval', value: waitingRows.length, color: PIE_STATUS['Waiting Approval'] },
+        { label: 'Done',             value: doneRows.length,    color: PIE_STATUS['DONE'] }
+      ];
+
+      // "5 (2 very urgent, 1 attention)" — the parenthesised counts in red
+      const openCardValue = (list, withUrgent) => {
+        const ur = list.filter(p => p.urgency === 'Urgent').length;
+        const vu = list.filter(p => p.urgency === 'Very Urgent').length;
+        const at = list.filter(p => !!p.attention).length;
+        if (withUrgent) {
+          // labels in black, numbers in red
+          return `${list.length} <span class="dash-note">(<b class="dash-red-num">${ur}</b> urgent, <b class="dash-red-num">${vu}</b> very urgent, <b class="dash-red-num">${at}</b> attention)</span>`;
+        }
+        return `${list.length} <span class="dash-red">(<b class="dash-red-num">${vu}</b> very urgent, <b class="dash-red-num">${at}</b> attention)</span>`;
+      };
+
+      // Approval counts (same label rule as the table's Approval column)
+      const reaskRows      = rows.filter(p => p._approvalLabel === 'Re-ask');
+      const plzReviewCount = rows.filter(p => p._approvalLabel === 'Plz Review').length;
+
+      // Re-ask pendency = today - Action date (first_action_at), for Re-ask posts only
+      const reaskPend = reaskRows
+        .filter(p => p.first_action_at)
+        .map(p => getDiffDays(p.first_action_at, todayIso))
+        .filter(d => d !== '-' && Number.isFinite(Number(d)))
+        .map(Number);
+      const reaskPendAvg = reaskPend.length ? (reaskPend.reduce((a, b) => a + b, 0) / reaskPend.length).toFixed(1) : '-';
+      const reaskPendMax = reaskPend.length ? Math.max(...reaskPend) : '-';
+
+      const avg = (nums) => nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length) : null;
+      const fmt1 = (v) => (v === null ? '-' : v.toFixed(1));
+      // Day(FA): only posts that actually had a first action (first_action_at set, or DONE)
+      const faNums = rows.filter(p => p._firstActionDate && p._dayActionVal !== null).map(p => Number(p._dayActionVal)).filter(Number.isFinite);
+      // Day(done): DONE posts only
+      const doneNums = doneRows.filter(p => p._dayApprovalVal !== null).map(p => Number(p._dayApprovalVal)).filter(Number.isFinite);
+      const avgFA = avg(faNums), avgDone = avg(doneNums);
+      // "as of today": empty Day(done) cells assumed to complete today (today - post date)
+      const doneAsOfTodayNums = rows.map(p => {
+        if (p._dayApprovalVal !== null && p._dayApprovalVal !== undefined) return Number(p._dayApprovalVal);
+        const d = getDiffDays(p._postDate, todayIso);
+        return d === '-' ? null : Number(d);
+      }).filter(n => n !== null && Number.isFinite(n));
+      const avgDoneAsOfToday = avg(doneAsOfTodayNums);
+      const pct = (n) => (total ? Math.round(n / total * 100) + '%' : '-');
+
+      el.innerHTML = `
+        <div class="dash-row dash-row-1">
+        <div class="dash-card dash-wide">
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <div class="dash-label">Total Posts</div>
+            <div class="dash-value">${total}</div>
+          </div>
+          <div class="pie-group">
+            ${pieWithLegend('Category', catSlices, 56)}
+            ${pieWithLegend('Urgency', urgSlices, 56)}
+            ${pieWithLegend('Issue Type', issueSlices, 56)}
+          </div>
+        </div>
+        <div class="dash-card dash-status">
+          <div class="dash-label">Status</div>
+          ${pieWithLegend('', statusSlices, 72)}
+        </div>
+        </div>
+        <div class="dash-row dash-row-2">
+        <div class="dash-card c-pending">
+          <div class="dash-label">Pending</div>
+          <div class="dash-value">${openCardValue(pendingRows, true)}</div>
+        </div>
+        <div class="dash-card c-reask">
+          <div class="dash-label">Re-ask</div>
+          <div class="dash-value dash-value-red">${openCardValue(reaskRows, true)}</div>
+        </div>
+        <div class="dash-card c-reask">
+          <div class="dash-label">Re-ask Pendency</div>
+          <div class="dash-value dash-value-red">${reaskPendAvg} <span class="dash-red">max ${reaskPendMax}</span></div>
+        </div>
+        <div class="dash-card c-waiting">
+          <div class="dash-label">Waiting Approval</div>
+          <div class="dash-value">${openCardValue(waitingRows, true)}</div>
+        </div>
+        <div class="dash-card c-review">
+          <div class="dash-label">Author Review Waiting</div>
+          <div class="dash-value">${plzReviewCount}</div>
+        </div>
+        <div class="dash-card c-done">
+          <div class="dash-label">Done</div>
+          <div class="dash-value">${doneRows.length}</div>
+        </div>
+        <div class="dash-card c-days">
+          <div class="dash-label">Avg Day(FA)</div>
+          <div class="dash-value">${fmt1(avgFA)} <span class="dash-max dash-max-red">max ${faNums.length ? Math.max(...faNums) : '-'}</span></div>
+        </div>
+        <div class="dash-card c-days">
+          <div class="dash-label">Avg Day(Done)</div>
+          <div class="dash-value">${fmt1(avgDone)} <span class="dash-max dash-max-red">as of today ${fmt1(avgDoneAsOfToday)}</span></div>
+        </div>
+        </div>
+      `;
+    }
+
+    // ===== New Post modal =====
+    function openNewPostModal() {
+      if (!currentUser) {
+        alert('Please sign in first.');
+        checkAuth();
+        return;
+      }
+      document.getElementById('new-post-modal').style.display = 'flex';
+      const titleEl = document.getElementById('form-title');
+      if (titleEl) titleEl.focus();
+    }
+
+    function closeNewPostModal() {
+      document.getElementById('new-post-modal').style.display = 'none';
+    }
+
     async function handleCreatePost(e) {
       e.preventDefault();
 
@@ -3252,6 +3594,7 @@
         attachedFiles = [];
         renderAttachedFiles();
         richEditors['form-content'].reset();
+        closeNewPostModal();
 
         await loadPosts();
       } catch (err) {
