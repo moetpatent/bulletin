@@ -1083,7 +1083,7 @@
     .btn-new-post:hover { background-color: var(--primary-hover); }
 
     /* One 8-column grid for both rows so the Status card lines up with Done */
-    .dashboard { display: grid; grid-template-columns: 1.4fr 1.3fr 1.4fr 1.3fr 1.4fr 0.7fr 1.2fr 1.3fr; gap: 10px; }
+    .dashboard { display: grid; grid-template-columns: 1.4fr 1.4fr 1.4fr 0.7fr 1.3fr 1.3fr 1.2fr 1.3fr; gap: 10px; }
     .dash-row { display: contents; }
     .dashboard .dash-card { min-width: 0; }
     .dash-card.dash-wide   { grid-column: 1 / -1; }
@@ -3488,17 +3488,9 @@
           <div class="dash-label">Pending</div>
           <div class="dash-value">${openCardValue(pendingRows, true)}</div>
         </div>
-        <div class="dash-card c-pending">
-          <div class="dash-label">Pending Pendency</div>
-          <div class="dash-value dash-value-red">${pendPendAvg} <span class="dash-red">max ${pendPendMax} <span class="dash-asof">as of today</span></span></div>
-        </div>
         <div class="dash-card c-reask">
           <div class="dash-label">Re-ask</div>
           <div class="dash-value dash-value-red">${openCardValue(reaskRows, true)}</div>
-        </div>
-        <div class="dash-card c-reask">
-          <div class="dash-label">Re-ask Pendency</div>
-          <div class="dash-value dash-value-red">${reaskPendAvg} <span class="dash-red">max ${reaskPendMax} <span class="dash-asof">as of today</span></span></div>
         </div>
         <div class="dash-card c-waiting">
           <div class="dash-label">Waiting Approval</div>
@@ -3507,6 +3499,14 @@
         <div class="dash-card c-done">
           <div class="dash-label">Done</div>
           <div class="dash-value">${doneRows.length} <span class="dash-note">(${pct(doneRows.length)})</span></div>
+        </div>
+        <div class="dash-card c-pending">
+          <div class="dash-label">Pending Pendency</div>
+          <div class="dash-value dash-value-red">${pendPendAvg} <span class="dash-red">max ${pendPendMax} <span class="dash-asof">as of today</span></span></div>
+        </div>
+        <div class="dash-card c-reask">
+          <div class="dash-label">Re-ask Pendency</div>
+          <div class="dash-value dash-value-red">${reaskPendAvg} <span class="dash-red">max ${reaskPendMax} <span class="dash-asof">as of today</span></span></div>
         </div>
         <div class="dash-card c-days">
           <div class="dash-label">Avg Day(FA)</div>
