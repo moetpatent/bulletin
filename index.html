@@ -1086,8 +1086,7 @@
     .dashboard { display: grid; grid-template-columns: 1.8fr 1.8fr 1.1fr 1.8fr 1.1fr 0.6fr 0.9fr 1.1fr; gap: 10px; }
     .dash-row { display: contents; }
     .dashboard .dash-card { min-width: 0; }
-    .dash-card.dash-wide   { grid-column: 1 / 6; }
-    .dash-card.dash-status { grid-column: 6 / 9; }
+    .dash-card.dash-wide   { grid-column: 1 / -1; }
     .dash-card {
       background: #f8fafc;
       border: 1px solid var(--border);
@@ -1128,14 +1127,12 @@
     .dash-value .dash-note { display: inline; margin-left: 8px; color: #0f172a; font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
     .dash-value .dash-note .dash-red-num { color: #dc2626; }
     .dash-value .dash-max-red { color: #dc2626; }
-    .dash-status .pie-block { margin-top: 4px; }
 
-    .dash-card.dash-wide, .dash-card.dash-status { display: flex; flex-direction: column; }
+    .dash-card.dash-wide { display: flex; flex-direction: column; }
     /* titles share row 1, pies share row 2 (centered on the same line) */
     .pie-group { display: grid; grid-auto-flow: column; grid-template-rows: auto 1fr; grid-auto-columns: max-content; column-gap: 35px; row-gap: 3px; margin-top: 4px; flex: 1; align-items: center; }
     .pie-group .pie-block { display: contents; }
     .pie-group .pie-title { align-self: start; }
-    .dash-status .pie-block { flex: 1; justify-content: center; }
     .pie-pct { color: var(--text-muted); }
     .pie-block { display: flex; flex-direction: column; gap: 3px; }
     .pie-title { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); }
@@ -3353,7 +3350,7 @@
     // ===== Dashboard (uses ALL posts, not the filtered view) =====
     // Validated categorical palette (fixed slot order, never cycled)
     const PIE_CAT = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
-    const PIE_STATUS  = { 'PENDING': '#e34948', 'Waiting Approval': '#eda100', 'DONE': '#008300' };
+    const PIE_STATUS  = { 'PENDING': '#e34948', 'Re-ask': '#2a78d6', 'Waiting Approval': '#eda100', 'DONE': '#008300' };
     const PIE_URGENCY = { 'Normal': '#2a78d6', 'Urgent': '#eda100', 'Very Urgent': '#e34948' };
 
     // slices: [{label, value, color}] -> small SVG pie (2px white gap between slices)
@@ -3403,8 +3400,10 @@
 
       const byStatus = (st) => rows.filter(p => p._status === st);
       const pendingRows = byStatus('PENDING');
-      const waitingRows = byStatus('Waiting Approval');
       const doneRows    = byStatus('DONE');
+      const reaskRows   = rows.filter(p => p._approvalLabel === 'Re-ask');
+      // Waiting Approval shown WITHOUT the Re-ask posts (they get their own card/slice)
+      const waitingRows = byStatus('Waiting Approval').filter(p => p._approvalLabel !== 'Re-ask');
 
       const countBy = (list, key, order) => order.map((k, i) => ({
         label: k, value: list.filter(p => (p[key] || '') === k).length, color: PIE_CAT[i]
@@ -3416,6 +3415,7 @@
       }));
       const statusSlices = [
         { label: 'Pending',          value: pendingRows.length, color: PIE_STATUS['PENDING'] },
+        { label: 'Re-ask',           value: reaskRows.length,   color: PIE_STATUS['Re-ask'] },
         { label: 'Waiting Approval', value: waitingRows.length, color: PIE_STATUS['Waiting Approval'] },
         { label: 'Done',             value: doneRows.length,    color: PIE_STATUS['DONE'] }
       ];
@@ -3433,7 +3433,6 @@
       };
 
       // Approval counts (same label rule as the table's Approval column)
-      const reaskRows      = rows.filter(p => p._approvalLabel === 'Re-ask');
       const plzReviewCount = rows.filter(p => p._approvalLabel === 'Plz Review').length;
 
       // Re-ask pendency = today - Action date (first_action_at), for Re-ask posts only
@@ -3464,19 +3463,16 @@
       el.innerHTML = `
         <div class="dash-row dash-row-1">
         <div class="dash-card dash-wide">
-          <div style="display:flex; align-items:baseline; gap:10px;">
+          <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;">
             <div class="dash-label">Total Posts</div>
-            <div class="dash-value">${total}</div>
+            <div class="dash-value">${total} <span class="dash-note">(<b>${pendingRows.length}</b> pending, <b>${reaskRows.length}</b> re-ask, <b>${waitingRows.length}</b> waiting approval, <b>${doneRows.length}</b> done)</span></div>
           </div>
           <div class="pie-group">
+            ${pieWithLegend('Status', statusSlices, 56)}
             ${pieWithLegend('Category', catSlices, 56)}
             ${pieWithLegend('Urgency', urgSlices, 56)}
             ${pieWithLegend('Issue Type', issueSlices, 56)}
           </div>
-        </div>
-        <div class="dash-card dash-status">
-          <div class="dash-label">Status</div>
-          ${pieWithLegend('', statusSlices, 72)}
         </div>
         </div>
         <div class="dash-row dash-row-2">
