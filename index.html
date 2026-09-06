@@ -1082,11 +1082,12 @@
     }
     .btn-new-post:hover { background-color: var(--primary-hover); }
 
-    .dashboard { display: flex; flex-direction: column; gap: 10px; }
-    .dash-row { display: grid; gap: 10px; }
-    .dash-row-1 { grid-template-columns: 3fr 1fr; }
-    .dash-row-2 { grid-template-columns: 1.8fr 1.8fr 1.1fr 1.8fr 1.1fr 0.6fr 0.9fr 1.1fr; }
-    .dash-row > .dash-card { min-width: 0; }
+    /* One 8-column grid for both rows so the Status card lines up with Done */
+    .dashboard { display: grid; grid-template-columns: 1.8fr 1.8fr 1.1fr 1.8fr 1.1fr 0.6fr 0.9fr 1.1fr; gap: 10px; }
+    .dash-row { display: contents; }
+    .dashboard .dash-card { min-width: 0; }
+    .dash-card.dash-wide   { grid-column: 1 / 6; }
+    .dash-card.dash-status { grid-column: 6 / 9; }
     .dash-card {
       background: #f8fafc;
       border: 1px solid var(--border);
