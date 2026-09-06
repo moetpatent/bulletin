@@ -2436,22 +2436,21 @@
       loginBtn.textContent = 'Verifying...';
 
       try {
+        // Password check happens inside the DB (check_login function);
+        // the browser never reads the password column.
         const { data, error } = await supabaseClient
-          .from('app_users')
-          .select('username, password')
-          .eq('username', usernameVal)
-          .limit(1);
+          .rpc('check_login', { p_username: usernameVal, p_password: passwordVal });
 
         if (error) throw error;
 
-        if (!data || data.length === 0 || String(data[0].password) !== String(passwordVal)) {
+        if (!data) {
           alert('Invalid username or password.');
           loginBtn.disabled = false;
           loginBtn.textContent = 'Sign In';
           return;
         }
 
-        currentUser = data[0].username;
+        currentUser = data;
         localStorage.setItem('bulletin_auth_user', currentUser);
         document.getElementById('login-modal').style.display = 'none';
         document.getElementById('current-user-name').textContent = currentUser;
