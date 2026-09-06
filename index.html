@@ -1083,7 +1083,7 @@
     .btn-new-post:hover { background-color: var(--primary-hover); }
 
     /* One 8-column grid for both rows so the Status card lines up with Done */
-    .dashboard { display: grid; grid-template-columns: 1.8fr 1.8fr 1.1fr 1.8fr 1.1fr 0.6fr 0.9fr 1.1fr; gap: 10px; }
+    .dashboard { display: grid; grid-template-columns: 1.4fr 1.3fr 1.4fr 1.3fr 1.4fr 0.7fr 1.2fr 1.3fr; gap: 10px; }
     .dash-row { display: contents; }
     .dashboard .dash-card { min-width: 0; }
     .dash-card.dash-wide   { grid-column: 1 / -1; }
@@ -1114,11 +1114,10 @@
       color: var(--text-muted);
       white-space: nowrap;
     }
-    .dash-card.c-pending  { border-left-color: #e34948; }
-    .dash-card.c-waiting  { border-left-color: #eda100; }
-    .dash-card.c-done     { border-left-color: #008300; }
-    .dash-card.c-reask    { border-left-color: #dc2626; }
-    .dash-card.c-review   { border-left-color: #2a78d6; }
+    .dash-card.c-pending  { border-left-color: #dc2626; }   /* Pending family: red */
+    .dash-card.c-reask    { border-left-color: #f97316; }   /* Re-ask family: orange */
+    .dash-card.c-waiting  { border-left-color: #2a78d6; }   /* Waiting Approval / Author Review: blue */
+    .dash-card.c-done     { border-left-color: #008300; }   /* Done: green */
     .dash-value.dash-value-red { color: #dc2626; }
     .dash-value .dash-max { margin-left: 8px; color: var(--text-muted); font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
     .dash-card.c-days     { border-left-color: #64748b; }
@@ -1127,6 +1126,7 @@
     .dash-value .dash-note { display: inline; margin-left: 8px; color: #0f172a; font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
     .dash-value .dash-note .dash-red-num { color: #dc2626; }
     .dash-value .dash-max-red { color: #dc2626; }
+    .dash-value .dash-asof { margin-left: 6px; color: var(--text-muted); font-weight: 600; font-size: 0.72rem; }
 
     .dash-card.dash-wide { display: flex; flex-direction: column; }
     /* titles share row 1, pies share row 2 (centered on the same line) */
@@ -3426,14 +3426,13 @@
         const vu = list.filter(p => p.urgency === 'Very Urgent').length;
         const at = list.filter(p => !!p.attention).length;
         if (withUrgent) {
-          // labels in black, numbers in red
-          return `${list.length} <span class="dash-note">(<b class="dash-red-num">${ur}</b> urgent, <b class="dash-red-num">${vu}</b> very urgent, <b class="dash-red-num">${at}</b> attention)</span>`;
+          // "urgent+" = Urgent + Very Urgent; labels in black, numbers in red
+          return `${list.length} <span class="dash-note">(<b class="dash-red-num">${ur + vu}</b> urgent+, <b class="dash-red-num">${at}</b> attention)</span>`;
         }
         return `${list.length} <span class="dash-red">(<b class="dash-red-num">${vu}</b> very urgent, <b class="dash-red-num">${at}</b> attention)</span>`;
       };
 
       // Approval counts (same label rule as the table's Approval column)
-      const plzReviewCount = rows.filter(p => p._approvalLabel === 'Plz Review').length;
 
       // Re-ask pendency = today - Action date (first_action_at), for Re-ask posts only
       const reaskPend = reaskRows
@@ -3441,6 +3440,13 @@
         .map(p => getDiffDays(p.first_action_at, todayIso))
         .filter(d => d !== '-' && Number.isFinite(Number(d)))
         .map(Number);
+      // Pending pendency = today - post date, for PENDING posts
+      const pendPend = pendingRows
+        .map(p => getDiffDays(p._postDate, todayIso))
+        .filter(d => d !== '-' && Number.isFinite(Number(d)))
+        .map(Number);
+      const pendPendAvg = pendPend.length ? (pendPend.reduce((a, b) => a + b, 0) / pendPend.length).toFixed(1) : '-';
+      const pendPendMax = pendPend.length ? Math.max(...pendPend) : '-';
       const reaskPendAvg = reaskPend.length ? (reaskPend.reduce((a, b) => a + b, 0) / reaskPend.length).toFixed(1) : '-';
       const reaskPendMax = reaskPend.length ? Math.max(...reaskPend) : '-';
 
@@ -3451,6 +3457,8 @@
       // Day(done): DONE posts only
       const doneNums = doneRows.filter(p => p._dayApprovalVal !== null).map(p => Number(p._dayApprovalVal)).filter(Number.isFinite);
       const avgFA = avg(faNums), avgDone = avg(doneNums);
+      const faAllNums = rows.map(p => p._dayActionVal).filter(v => v !== null && v !== undefined).map(Number).filter(Number.isFinite);
+      const faMaxToday = faAllNums.length ? Math.max(...faAllNums) : '-';
       // "as of today": empty Day(done) cells assumed to complete today (today - post date)
       const doneAsOfTodayNums = rows.map(p => {
         if (p._dayApprovalVal !== null && p._dayApprovalVal !== undefined) return Number(p._dayApprovalVal);
@@ -3480,33 +3488,33 @@
           <div class="dash-label">Pending</div>
           <div class="dash-value">${openCardValue(pendingRows, true)}</div>
         </div>
+        <div class="dash-card c-pending">
+          <div class="dash-label">Pending Pendency</div>
+          <div class="dash-value dash-value-red">${pendPendAvg} <span class="dash-red">max ${pendPendMax} <span class="dash-asof">as of today</span></span></div>
+        </div>
         <div class="dash-card c-reask">
           <div class="dash-label">Re-ask</div>
           <div class="dash-value dash-value-red">${openCardValue(reaskRows, true)}</div>
         </div>
         <div class="dash-card c-reask">
           <div class="dash-label">Re-ask Pendency</div>
-          <div class="dash-value dash-value-red">${reaskPendAvg} <span class="dash-red">max ${reaskPendMax}</span></div>
+          <div class="dash-value dash-value-red">${reaskPendAvg} <span class="dash-red">max ${reaskPendMax} <span class="dash-asof">as of today</span></span></div>
         </div>
         <div class="dash-card c-waiting">
           <div class="dash-label">Waiting Approval</div>
           <div class="dash-value">${openCardValue(waitingRows, true)}</div>
         </div>
-        <div class="dash-card c-review">
-          <div class="dash-label">Author Review Waiting</div>
-          <div class="dash-value">${plzReviewCount}</div>
-        </div>
         <div class="dash-card c-done">
           <div class="dash-label">Done</div>
-          <div class="dash-value">${doneRows.length}</div>
+          <div class="dash-value">${doneRows.length} <span class="dash-note">(${pct(doneRows.length)})</span></div>
         </div>
         <div class="dash-card c-days">
           <div class="dash-label">Avg Day(FA)</div>
-          <div class="dash-value">${fmt1(avgFA)} <span class="dash-max dash-max-red">max ${faNums.length ? Math.max(...faNums) : '-'}</span></div>
+          <div class="dash-value">${fmt1(avgFA)} <span class="dash-red">max ${faMaxToday} <span class="dash-asof">as of today</span></span></div>
         </div>
         <div class="dash-card c-days">
           <div class="dash-label">Avg Day(Done)</div>
-          <div class="dash-value">${fmt1(avgDone)} <span class="dash-max dash-max-red">as of today ${fmt1(avgDoneAsOfToday)}</span></div>
+          <div class="dash-value">${fmt1(avgDone)} <span class="dash-red">avg ${fmt1(avgDoneAsOfToday)} <span class="dash-asof">as of today</span></span></div>
         </div>
         </div>
       `;
