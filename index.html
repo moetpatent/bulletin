@@ -577,6 +577,13 @@
       margin-left: 5px;
       letter-spacing: -0.5px;
     }
+    .comment-latest-date {
+      color: #dc2626;
+      font-weight: 400;
+      font-size: 0.75rem;
+      margin-left: 5px;
+      white-space: nowrap;
+    }
 
     /* Floating Dropdown & Search Popovers.
        Positioned `fixed` and placed by JS (see positionPopover): the table is
@@ -1577,6 +1584,7 @@
     let currentUser = localStorage.getItem('bulletin_auth_user') || null;
     let postsData = [];
     let commentsCountMap = {}; // Maps post_id -> comment count
+    let commentsLatestMap = {}; // Maps post_id -> latest comment created_at
     let attachedFiles = [];        // Files queued in the post form
     let commentAttachedFiles = []; // Files queued in the comment form
     let currentDetailPostId = null;
@@ -2512,13 +2520,17 @@
         try {
           const { data: comments, error: commentsError } = await supabaseClient
             .from('comments')
-            .select('post_id');
+            .select('post_id, created_at');
 
           if (!commentsError && comments) {
             commentsCountMap = {};
+            commentsLatestMap = {};
             comments.forEach(c => {
               const pid = c.post_id;
               commentsCountMap[pid] = (commentsCountMap[pid] || 0) + 1;
+              if (c.created_at && (!commentsLatestMap[pid] || c.created_at > commentsLatestMap[pid])) {
+                commentsLatestMap[pid] = c.created_at;
+              }
             });
           }
         } catch (cErr) {
@@ -2719,7 +2731,10 @@
 
         // Comment count badge
         const cCount = commentsCountMap[post.id] || 0;
-        const commentBadgeHtml = cCount > 0 ? `<span class="comment-count-badge">[${cCount}]</span>` : '';
+        const latestC = commentsLatestMap[post.id];
+        const commentBadgeHtml = cCount > 0
+          ? `<span class="comment-count-badge">[${cCount}]</span>${latestC ? `<span class="comment-latest-date">${formatDate(latestC)}</span>` : ''}`
+          : '';
 
         // Status Badge
         const statusClass = `status-${status.replace(/\s+/g, '-')}`;
@@ -3107,6 +3122,9 @@
         countEl.textContent = comments.length;
         
         commentsCountMap[postId] = comments.length;
+        if (comments.length) {
+          commentsLatestMap[postId] = comments.reduce((m, c) => (c.created_at && c.created_at > m ? c.created_at : m), '');
+        }
 
         // Drop the previous render's comment attachments before re-registering,
         // so the registry always matches exactly what is on screen.
