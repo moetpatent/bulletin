@@ -746,6 +746,7 @@
     .status-PENDING { background-color: #ef4444; }
     .status-Waiting-Approval { background-color: #d97706; }
     .status-DONE { background-color: #10b981; }
+    .status-Reask-Handled { background-color: #2563eb; }
 
     .approval-btn {
       display: inline-block;
@@ -765,6 +766,7 @@
     .approval-Re-ask { background-color: #dc2626; }
     .approval-Plz-Review { background-color: #ea580c; }
     .approval-none { color: #94a3b8; font-weight: normal; background: none; }
+    .approval-Waiting-Action { background-color: #16a34a; display: inline-block; }
 
     /* Attention Toggle (raised-hand icon, author-only) */
     .attention-toggle-btn {
@@ -1090,7 +1092,7 @@
     .btn-new-post:hover { background-color: var(--primary-hover); }
 
     /* One 8-column grid for both rows so the Status card lines up with Done */
-    .dashboard { display: grid; grid-template-columns: 1.4fr 1.4fr 1.4fr 0.7fr 1.3fr 1.3fr 1.2fr 1.3fr; gap: 10px; }
+    .dashboard { display: grid; grid-template-columns: 1.25fr 2.1fr 1.25fr 0.6fr 1.2fr 1.2fr 1.15fr 1.25fr; gap: 10px; }
     .dash-row { display: contents; }
     .dashboard .dash-card { min-width: 0; }
     .dash-card.dash-wide   { grid-column: 1 / -1; }
@@ -1132,6 +1134,8 @@
     .dash-value .dash-red-num { font-size: calc(0.8rem + 2pt); }
     .dash-value .dash-note { display: inline; margin-left: 8px; color: #0f172a; font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
     .dash-value .dash-note .dash-red-num { color: #dc2626; }
+    .dash-value .dash-note-big { margin-left: 0; font-size: inherit; color: inherit; }
+    .dash-value .dash-note-big .dash-note { margin-left: 4px; }
     .dash-value .dash-max-red { color: #dc2626; }
     .dash-value .dash-asof { margin-left: 6px; color: var(--text-muted); font-weight: 600; font-size: 0.72rem; }
 
@@ -1434,12 +1438,12 @@
         <thead>
           <tr>
             <!-- Post No. : 소팅 -->
-            <th class="clickable-th" style="width: 5%;" onclick="handleSort('id')" title="Click to sort by Post No.">
+            <th class="clickable-th" style="width: 3.5%;" onclick="handleSort('id')" title="Click to sort by Post No.">
               Post No. <span id="sort-indicator-id">▼</span>
             </th>
             
             <!-- Category : 엑셀 스타일 다중선택 필터 -->
-            <th class="clickable-th" style="width: 8%;" onclick="openPopover(event, 'popover-category')" title="Click to filter Category">
+            <th class="clickable-th" style="width: 6%;" onclick="openPopover(event, 'popover-category')" title="Click to filter Category">
               Category 
               <svg class="excel-icon" id="icon-filter-category" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
@@ -1448,7 +1452,7 @@
             </th>
 
             <!-- App No. : 엑셀 스타일 검색 -->
-            <th class="clickable-th" style="width: 9%;" onclick="openPopover(event, 'popover-app-no')" title="Click to search App No.">
+            <th class="clickable-th" style="width: 7%;" onclick="openPopover(event, 'popover-app-no')" title="Click to search App No.">
               App No. 
               <svg class="excel-icon" id="icon-search-app-no" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="7"></circle>
@@ -1464,7 +1468,7 @@
             </th>
 
             <!-- Issue Type : 엑셀 스타일 다중선택 필터 -->
-            <th class="clickable-th" style="width: 10%;" onclick="openPopover(event, 'popover-issue-type')" title="Click to filter Issue Type">
+            <th class="clickable-th" style="width: 8%;" onclick="openPopover(event, 'popover-issue-type')" title="Click to filter Issue Type">
               Issue Type 
               <svg class="excel-icon" id="icon-filter-issue-type" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3 4c0-.55.45-1 1-1h16c.55 0 1 .45 1 1v1.59c0 .27-.11.52-.29.71L14 13.01V20c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-6.99l-6.71-6.7A.996.996 0 0 1 3 5.59V4z"/>
@@ -1540,6 +1544,11 @@
               Day(FA) <span id="sort-indicator-day_action">▲▼</span>
             </th>
 
+            <!-- Day (Re-ask) : Re-ask 한 날 → Reask Handled / Done / 오늘 -->
+            <th class="clickable-th" style="width: 5%;" onclick="handleSort('day_reask')" title="Days from Re-ask to Reask Handled (or Done, or today if still waiting)">
+              Day(Re) <span id="sort-indicator-day_reask">▲▼</span>
+            </th>
+
             <!-- Day (Approval) : 소팅 -->
             <th class="clickable-th" style="width: 6%;" onclick="handleSort('day_approval')" title="Click to sort by Day (Approval)">
               Day(done) <span id="sort-indicator-day_approval">▲▼</span>
@@ -1557,7 +1566,7 @@
         </thead>
         <tbody id="posts-tbody">
           <tr>
-            <td colspan="15" style="padding: 30px; color: #94a3b8;">Loading bulletin data...</td>
+            <td colspan="16" style="padding: 30px; color: #94a3b8;">Loading bulletin data...</td>
           </tr>
         </tbody>
       </table>
@@ -1708,11 +1717,11 @@
       buildMultiSelectMenu('popover-urgency', 'urgency', urgencyOptions);
 
       // 3. Status
-      const statusOptions = ["PENDING", "Waiting Approval", "DONE"];
+      const statusOptions = ["PENDING", "Waiting Approval", "Reask Handled", "DONE"];
       buildMultiSelectMenu('popover-status', 'status', statusOptions);
 
       // Approval labels as displayed in the table ('-', 'Plz Review', 'Re-ask', 'Good', ...)
-      const baseApproval = ['-', 'Plz Review', 'Re-ask', 'Good'];
+      const baseApproval = ['Waiting Action', 'Plz Review', 'Re-ask', 'Good'];
       const nowIsoA = new Date().toISOString();
       const extraApproval = Array.from(new Set(postsData.map(p => derivePostMetrics(p, nowIsoA)._approvalLabel))).filter(l => !baseApproval.includes(l)).sort();
       buildMultiSelectMenu('popover-approval', 'approval', baseApproval.concat(extraApproval));
@@ -1837,7 +1846,7 @@
 
     // Update Sorting UI Indicators
     function updateSortIndicators() {
-      const sortableCols = ['id', 'first_action_at', 'day_action', 'day_approval'];
+      const sortableCols = ['id', 'first_action_at', 'day_action', 'day_reask', 'day_approval'];
       sortableCols.forEach(col => {
         const el = document.getElementById(`sort-indicator-${col}`);
         if (!el) return;
@@ -2545,7 +2554,7 @@
       } catch (err) {
         console.error('Fetch error:', err);
         document.getElementById('posts-tbody').innerHTML = `
-          <tr><td colspan="15" style="color: red; padding: 20px;">Failed to load data: ${err.message}</td></tr>
+          <tr><td colspan="16" style="color: red; padding: 20px;">Failed to load data: ${err.message}</td></tr>
         `;
       }
     }
@@ -2584,11 +2593,26 @@
 
       // Approval label exactly as the table badge shows it
       const rawApprovalVal = post.reask_status;
-      let approvalLabel = '-';
+      let approvalLabel = 'Waiting Action';            // PENDING: nothing to approve yet
       if (status === 'Waiting Approval') {
         approvalLabel = (rawApprovalVal === 'Re-ask') ? 'Re-ask' : 'Plz Review';
+      } else if (status === 'Reask Handled') {
+        approvalLabel = (rawApprovalVal === 'Good') ? 'Good' : 'Re-ask';
       } else if (status === 'DONE') {
         approvalLabel = (rawApprovalVal && rawApprovalVal !== 'EMPTY') ? rawApprovalVal : 'Good';
+      }
+
+      // Day(Re): reask_at -> reask_handled_at, else Done date, else today
+      let dayReaskVal = null;
+      let dayReaskStr = '-';
+      if (post.reask_at && status !== 'PENDING') {
+        let endDate = post.reask_handled_at;
+        if (!endDate && status === 'DONE') {
+          endDate = post.approval_completed_at || post.completed_at || post.action_completed_at || null;
+        }
+        if (!endDate) endDate = todayIso;
+        const diff = getDiffDays(post.reask_at, endDate);
+        if (diff !== '-') { dayReaskVal = diff; dayReaskStr = diff; }
       }
 
       return {
@@ -2600,6 +2624,8 @@
         _dayActionStr: dayActionStr,
         _dayApprovalVal: dayApprovalVal,
         _dayApprovalStr: dayApprovalStr,
+        _dayReaskVal: dayReaskVal,
+        _dayReaskStr: dayReaskStr,
         _approvalLabel: approvalLabel
       };
     }
@@ -2619,7 +2645,7 @@
     function renderPostsTable() {
       const tbody = document.getElementById('posts-tbody');
       if (postsData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="15" style="padding: 20px;">No posts found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="16" style="padding: 20px;">No posts found.</td></tr>';
         currentFilteredPosts = [];
         updatePostCountDisplay();
         return;
@@ -2683,6 +2709,9 @@
         } else if (currentSort.column === 'day_action') {
           valA = a._dayActionVal !== null ? a._dayActionVal : -999999;
           valB = b._dayActionVal !== null ? b._dayActionVal : -999999;
+        } else if (currentSort.column === 'day_reask') {
+          valA = a._dayReaskVal !== null ? a._dayReaskVal : -999999;
+          valB = b._dayReaskVal !== null ? b._dayReaskVal : -999999;
         } else if (currentSort.column === 'day_approval') {
           valA = a._dayApprovalVal !== null ? a._dayApprovalVal : -999999;
           valB = b._dayApprovalVal !== null ? b._dayApprovalVal : -999999;
@@ -2696,7 +2725,7 @@
       });
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="15" style="padding: 24px; color: #64748b;">No matching posts found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="16" style="padding: 24px; color: #64748b;">No matching posts found.</td></tr>';
         currentFilteredPosts = [];
         currentPage = 1;
         renderPagination(0);
@@ -2738,19 +2767,33 @@
 
         // Status Badge
         const statusClass = `status-${status.replace(/\s+/g, '-')}`;
-        const isStatusClickable = (status === 'PENDING');
+        // Clickable: PENDING -> Waiting Approval, or (Waiting Approval + Re-ask) -> Reask Handled. One way only.
+        const isStatusClickable = (status === 'PENDING') || (status === 'Waiting Approval' && rawApproval === 'Re-ask');
+        const statusTitle = status === 'PENDING'
+          ? 'Click to enter password and change to Waiting Approval'
+          : (isStatusClickable ? 'Click to enter password and mark Re-ask as handled (Reask Handled)' : 'Status cannot be changed');
         const statusBtnHtml = `
           <button class="status-badge ${statusClass} ${isStatusClickable ? 'clickable' : 'disabled'}" 
                   onclick="cycleStatus(${post.id}, '${status}')" 
-                  title="${isStatusClickable ? 'Click to enter password and change to Waiting Approval' : 'Status cannot be changed'}">
+                  title="${statusTitle}">
             ${status}
           </button>
         `;
 
         // Approval Badge
-        let approvalHtml = '<span class="approval-none">-</span>';
+        let approvalHtml = `<span class="approval-btn approval-Waiting-Action disabled" title="Waiting for first action">Waiting Action</span>`;
 
-        if (status === 'Waiting Approval') {
+        if (status === 'Reask Handled') {
+          approvalHtml = (rawApproval === 'Good')
+            ? `<button class="approval-btn approval-Good disabled" title="Approved">Good</button>`
+            : `
+              <button class="approval-btn approval-Re-ask clickable" 
+                      onclick="handleApprovalClick(${post.id})" 
+                      title="Re-ask handled — click to approve as Good (Author only)">
+                Re-ask
+              </button>
+            `;
+        } else if (status === 'Waiting Approval') {
           if (!rawApproval || rawApproval === 'EMPTY' || rawApproval === 'Good') {
             approvalHtml = `
               <button class="approval-btn approval-Plz-Review clickable" 
@@ -2825,6 +2868,7 @@
             <td>${firstActionDate ? formatDate(firstActionDate) : '-'}</td>
             <td>${post.first_action_by || '-'}</td>
             <td>${dayCellHtml(post._dayActionVal, dayAction, 3, 7)}</td>
+            <td>${dayCellHtml(post._dayReaskVal, post._dayReaskStr, 3, 7)}</td>
             <td>${dayCellHtml(post._dayApprovalVal, dayApproval, 7, 10)}</td>
             <td>${approvalHtml}</td>
           </tr>
@@ -2883,13 +2927,7 @@
       // Build plain rows that mirror exactly what is shown in the on-screen table,
       // in the same column order, using the already-filtered & sorted dataset.
       const rows = currentFilteredPosts.map(post => {
-        const rawApproval = post.reask_status;
-        let approvalLabel = '-';
-        if (post._status === 'Waiting Approval') {
-          approvalLabel = (!rawApproval || rawApproval === 'EMPTY') ? 'Plz Review' : rawApproval;
-        } else if (post._status === 'DONE') {
-          approvalLabel = (rawApproval && rawApproval !== 'EMPTY') ? rawApproval : 'Good';
-        }
+        const approvalLabel = post._approvalLabel;
 
         return {
           'Post No.': post.id,
@@ -2906,6 +2944,7 @@
           'Action': post._firstActionDate ? formatDate(post._firstActionDate) : '-',
           'By': post.first_action_by || '-',
           'Day(FA)': post._dayActionStr,
+          'Day(Re)': post._dayReaskStr,
           'Day(done)': post._dayApprovalStr,
           'Approval': approvalLabel
         };
@@ -3227,8 +3266,11 @@
 
     // 1. Status Click Handler (Password Verification)
     async function cycleStatus(postId, currentStatus) {
-      if (currentStatus !== 'PENDING') {
-        alert('Status cannot be changed directly once it is in Waiting Approval or DONE.');
+      const post = postsData.find(p => p.id === postId);
+      const toReaskHandled = (currentStatus === 'Waiting Approval' && post && post.reask_status === 'Re-ask');
+
+      if (currentStatus !== 'PENDING' && !toReaskHandled) {
+        alert('Status can only be changed from PENDING, or from Waiting Approval while Approval is Re-ask.');
         return;
       }
 
@@ -3246,12 +3288,14 @@
       }
 
       const nowIso = new Date().toISOString();
-      const updateData = {
-        status: 'Waiting Approval',
-        first_action_at: nowIso,
-        first_action_by: currentUser || null,
-        reask_status: 'EMPTY'
-      };
+      const updateData = toReaskHandled
+        ? { status: 'Reask Handled', reask_handled_at: nowIso }
+        : {
+            status: 'Waiting Approval',
+            first_action_at: nowIso,
+            first_action_by: currentUser || null,
+            reask_status: 'EMPTY'
+          };
 
       try {
         const { error } = await supabaseClient
@@ -3343,7 +3387,8 @@
 
       } else if (trimmedChoice === '2' || trimmedChoice === 're-ask' || trimmedChoice === 'reask') {
         const updateData = {
-          reask_status: 'Re-ask'
+          reask_status: 'Re-ask',
+          reask_at: nowIso
         };
 
         try {
@@ -3368,7 +3413,8 @@
     // ===== Dashboard (uses ALL posts, not the filtered view) =====
     // Validated categorical palette (fixed slot order, never cycled)
     const PIE_CAT = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
-    const PIE_STATUS  = { 'PENDING': '#e34948', 'Re-ask': '#2a78d6', 'Waiting Approval': '#eda100', 'DONE': '#008300' };
+    const PIE_STATUS   = { 'PENDING': '#e34948', 'Waiting Approval': '#eda100', 'Reask Handled': '#2a78d6', 'DONE': '#008300' };
+    const PIE_APPROVAL = { 'Waiting Action': '#1baf7a', 'Plz Review': '#eda100', 'Re-ask': '#e34948', 'Good': '#2a78d6' };
     const PIE_URGENCY = { 'Normal': '#2a78d6', 'Urgent': '#eda100', 'Very Urgent': '#e34948' };
 
     // slices: [{label, value, color}] -> small SVG pie (2px white gap between slices)
@@ -3417,11 +3463,14 @@
       const total = rows.length;
 
       const byStatus = (st) => rows.filter(p => p._status === st);
-      const pendingRows = byStatus('PENDING');
-      const doneRows    = byStatus('DONE');
-      const reaskRows   = rows.filter(p => p._approvalLabel === 'Re-ask');
-      // Waiting Approval shown WITHOUT the Re-ask posts (they get their own card/slice)
-      const waitingRows = byStatus('Waiting Approval').filter(p => p._approvalLabel !== 'Re-ask');
+      const pendingRows      = byStatus('PENDING');
+      const doneRows         = byStatus('DONE');
+      const waitingAllRows   = byStatus('Waiting Approval');          // by Status (pie / header)
+      const reaskHandledRows = byStatus('Reask Handled');
+      // Re-ask = Approval is Re-ask and not yet Done (Waiting Approval or Reask Handled)
+      const reaskRows   = rows.filter(p => p._approvalLabel === 'Re-ask' && p._status !== 'DONE');
+      // Waiting Approval card: WITHOUT the Re-ask posts (they have their own card)
+      const waitingRows = waitingAllRows.filter(p => p._approvalLabel !== 'Re-ask');
 
       const countBy = (list, key, order) => order.map((k, i) => ({
         label: k, value: list.filter(p => (p[key] || '') === k).length, color: PIE_CAT[i]
@@ -3432,11 +3481,14 @@
         label: k, value: rows.filter(p => p.urgency === k).length, color: PIE_URGENCY[k]
       }));
       const statusSlices = [
-        { label: 'Pending',          value: pendingRows.length, color: PIE_STATUS['PENDING'] },
-        { label: 'Re-ask',           value: reaskRows.length,   color: PIE_STATUS['Re-ask'] },
-        { label: 'Waiting Approval', value: waitingRows.length, color: PIE_STATUS['Waiting Approval'] },
-        { label: 'Done',             value: doneRows.length,    color: PIE_STATUS['DONE'] }
+        { label: 'Pending',          value: pendingRows.length,      color: PIE_STATUS['PENDING'] },
+        { label: 'Waiting Approval', value: waitingAllRows.length,   color: PIE_STATUS['Waiting Approval'] },
+        { label: 'Reask Handled',    value: reaskHandledRows.length, color: PIE_STATUS['Reask Handled'] },
+        { label: 'Done',             value: doneRows.length,         color: PIE_STATUS['DONE'] }
       ];
+      const approvalSlices = ['Waiting Action', 'Plz Review', 'Re-ask', 'Good'].map(k => ({
+        label: k, value: rows.filter(p => p._approvalLabel === k).length, color: PIE_APPROVAL[k]
+      }));
 
       // "5 (2 very urgent, 1 attention)" — the parenthesised counts in red
       const openCardValue = (list, withUrgent) => {
@@ -3452,11 +3504,10 @@
 
       // Approval counts (same label rule as the table's Approval column)
 
-      // Re-ask pendency = today - Action date (first_action_at), for Re-ask posts only
-      const reaskPend = reaskRows
-        .filter(p => p.first_action_at)
-        .map(p => getDiffDays(p.first_action_at, todayIso))
-        .filter(d => d !== '-' && Number.isFinite(Number(d)))
+      // Re-ask pendency = Day(Re) (reask_at -> handled / done / today), posts that have a reask_at
+      const reaskPend = rows
+        .map(p => p._dayReaskVal)
+        .filter(d => d !== null && d !== undefined && Number.isFinite(Number(d)))
         .map(Number);
       // Pending pendency = today - post date, for PENDING posts
       const pendPend = pendingRows
@@ -3491,10 +3542,11 @@
         <div class="dash-card dash-wide">
           <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;">
             <div class="dash-label">Total Posts</div>
-            <div class="dash-value">${total} <span class="dash-note">(<b>${pendingRows.length}</b> pending, <b>${reaskRows.length}</b> re-ask, <b>${waitingRows.length}</b> waiting approval, <b>${doneRows.length}</b> done)</span></div>
+            <div class="dash-value">${total} <span class="dash-note">(<b>${pendingRows.length}</b> pending, <b>${waitingAllRows.length}</b> waiting approval, <b>${reaskHandledRows.length}</b> reask handled, <b>${doneRows.length}</b> done)</span></div>
           </div>
           <div class="pie-group">
             ${pieWithLegend('Status', statusSlices, 56)}
+            ${pieWithLegend('Approval Status', approvalSlices, 56)}
             ${pieWithLegend('Category', catSlices, 56)}
             ${pieWithLegend('Urgency', urgSlices, 56)}
             ${pieWithLegend('Issue Type', issueSlices, 56)}
@@ -3508,7 +3560,7 @@
         </div>
         <div class="dash-card c-reask">
           <div class="dash-label">Re-ask</div>
-          <div class="dash-value dash-value-red">${openCardValue(reaskRows, true)}</div>
+          <div class="dash-value dash-value-red">${openCardValue(reaskRows, true)}<span class="dash-note dash-note-big">, ${reaskRows.filter(p => p._status === 'Reask Handled').length} <span class="dash-note">Handled</span></span></div>
         </div>
         <div class="dash-card c-waiting">
           <div class="dash-label">Waiting Approval</div>
